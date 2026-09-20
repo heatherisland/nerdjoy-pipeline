@@ -8,7 +8,7 @@ from nerdjoy_pipeline.metrics import (
     referral_metrics,
     summary,
 )
-from nerdjoy_pipeline.tracker import read_tracker
+from nerdjoy_pipeline.tracker import Application, read_tracker
 
 
 def _apps(path: Path):
@@ -115,3 +115,27 @@ def test_summary_reports_totals(sample_tracker_path: Path):
     s = summary(_apps(sample_tracker_path))
     assert s["totals"]["applications"] == 10
     assert s["totals"]["companies"] == 10
+
+
+def _chan(apply_via: str) -> Application:
+    return Application(
+        company="X", role="Y", status="Applied", priority="LOW",
+        referral_needed=False, referral_status="Not Needed",
+        apply_via=apply_via, applied_date=None, discovered_date=None,
+    )
+
+
+def test_agency_channels_are_generalized():
+    """Staffing agencies are employers too; publishing them leaks company names."""
+    apps = [
+        _chan("Aquent"),
+        _chan("Robert Half"),
+        _chan("Onward Search"),
+        _chan("LinkedIn"),
+    ]
+    assert channel_counts(apps) == {"Staffing Agency": 3, "LinkedIn": 1}
+
+
+def test_non_agency_channels_are_untouched():
+    apps = [_chan("Greenhouse"), _chan("Company Site")]
+    assert channel_counts(apps) == {"Company Site": 1, "Greenhouse": 1}

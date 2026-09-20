@@ -9,6 +9,7 @@ from nerdjoy_pipeline.tracker import (
     VALID_REFERRAL_STATUSES,
     VALID_STATUSES,
     Application,
+    is_excluded,
     normalize_apply_via,
     parse_date,
     read_tracker,
@@ -103,3 +104,25 @@ def test_applied_date_parsed(sample_tracker_path: Path):
 def test_missing_applied_date_is_none(sample_tracker_path: Path):
     app = next(a for a in read_tracker(sample_tracker_path) if a.company == "Cindergrid")
     assert app.applied_date is None
+
+
+def test_excluded_company_never_enters_the_pipeline(tmp_path):
+    """Excluded rows are dropped on read; the source file is never modified."""
+    csv_path = tmp_path / "t.csv"
+    csv_path.write_text(
+        "Company,Role,Status,Priority,Referral Needed,Referral Status,"
+        "Apply Via,Applied Date,Discovered Date\n"
+        "Apply Digital,Architect,Offer,HIGH,NO,Not Needed,Company Site,,\n"
+        "Hollowpine,Engineer,Applied,HIGH,NO,Not Needed,Greenhouse,,\n",
+        encoding="utf-8",
+    )
+    before = csv_path.read_bytes()
+    apps = read_tracker(csv_path)
+    assert [a.company for a in apps] == ["Hollowpine"]
+    assert csv_path.read_bytes() == before
+
+
+def test_is_excluded_is_case_insensitive():
+    assert is_excluded("APPLY DIGITAL")
+    assert is_excluded("  Apply Digital  ")
+    assert not is_excluded("Apply Digital Systems")

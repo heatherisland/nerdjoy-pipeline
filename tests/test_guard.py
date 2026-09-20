@@ -185,3 +185,24 @@ def test_guard_text_runs_the_contact_check(sample_tracker_path: Path):
     denylist = build_denylist(sample_tracker_path)
     with pytest.raises(GuardViolation, match="email"):
         guard_text("Email (petra@shovels.ai)", denylist, label="metrics.json")
+
+
+def test_parenthetical_qualifier_words_are_not_indexed(tmp_path):
+    """A parenthetical is a descriptor, not identity. The full name stays blocked."""
+    csv_path = tmp_path / "t.csv"
+    csv_path.write_text(
+        "Company,Role,Status,Priority,Referral Needed,Referral Status,"
+        "Apply Via,Applied Date,Discovered Date\n"
+        "Undisclosed (LinkedIn partner),Eng,To Apply,LOW,NO,Not Needed,LinkedIn,,\n"
+        "Coda Search (Staffing),Eng,Applied,LOW,NO,Not Needed,Email,,\n",
+        encoding="utf-8",
+    )
+    denylist = build_denylist(csv_path)
+    # Qualifier words stay usable, so channel labels do not fail the build.
+    assert "linkedin" not in denylist
+    assert "staffing" not in denylist
+    # Identity is still protected.
+    assert "coda" in denylist
+    check_no_denylisted_terms("Applied via LinkedIn Easy Apply.", denylist)
+    with pytest.raises(GuardViolation):
+        check_no_denylisted_terms("Coda Search rejected the application.", denylist)

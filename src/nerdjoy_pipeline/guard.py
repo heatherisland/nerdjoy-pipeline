@@ -99,6 +99,12 @@ def build_denylist(tracker_path: str | Path) -> set[str]:
         if len(name) < _MIN_TERM_LENGTH:
             continue
         terms.add(name.lower())
+        # A parenthetical is a descriptor, not identity: "Undisclosed (LinkedIn
+        # partner)" is already anonymized, and "Coda Search (Staffing)" is
+        # identified by "Coda Search". Indexing their qualifier words would
+        # protect nothing while banning ordinary vocabulary. The full name stays
+        # on the list; only the parenthetical is skipped when splitting words.
+        name = re.sub(r"\([^)]*\)", " ", name)
         for word in re.split(r"[^\w]+", name):
             lowered = word.lower()
             if len(word) > _MIN_TERM_LENGTH and lowered not in _GENERIC_NAME_TOKENS:

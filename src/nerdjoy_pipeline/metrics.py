@@ -40,14 +40,33 @@ def referral_metrics(apps: list[Application]) -> dict[str, int | float]:
     }
 
 
+# Staffing agencies are both a channel and an employer in the tracker, so
+# publishing them verbatim would disclose real companies applied to. They are
+# generalized to one descriptor, which keeps the aggregate and the funnel total
+# honest while removing the names. Matched case-insensitively.
+AGENCY_CHANNELS: frozenset[str] = frozenset({
+    "aquent", "robert half", "24 seven", "braintrust",
+    "creative circle", "onward search",
+})
+AGENCY_CHANNEL_LABEL = "Staffing Agency"
+
+
+def generalize_channel(label: str) -> str:
+    """Collapse agency channel names to a generic descriptor."""
+    return AGENCY_CHANNEL_LABEL if label.strip().lower() in AGENCY_CHANNELS else label
+
+
 def channel_counts(apps: list[Application]) -> dict[str, int]:
     """Applications per normalized apply channel, descending by count.
 
     Re-normalizes the label rather than trusting the field. Channel labels are
     published verbatim in metrics.json, and an Application can be built without
-    passing through read_tracker, so the scrub is repeated here.
+    passing through read_tracker, so the scrub is repeated here. Agency names are
+    then generalized so no real company is published as a channel.
     """
-    counts = Counter(normalize_apply_via(a.apply_via) for a in apps)
+    counts = Counter(
+        generalize_channel(normalize_apply_via(a.apply_via)) for a in apps
+    )
     return dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
 
 

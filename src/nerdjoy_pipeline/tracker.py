@@ -100,10 +100,25 @@ def _normalize_choice(raw: str, valid: frozenset[str], fallback: str) -> str:
     return raw if raw in valid else fallback
 
 
+# Companies excluded from the pipeline at Heather's explicit instruction. The
+# source tracker is never modified; these rows are dropped on read, so they reach
+# no downstream consumer: metrics, warehouse, CRM or dashboard. Because an
+# excluded company never reaches a published artifact, it is also dropped from
+# the deny list, which exists only to protect names that could otherwise leak.
+EXCLUDED_COMPANIES: frozenset[str] = frozenset({"apply digital"})
+
+
+def is_excluded(company: str) -> bool:
+    """True if this company is withheld from the pipeline entirely."""
+    return (company or "").strip().lower() in EXCLUDED_COMPANIES
+
+
 def read_tracker(path: str | Path) -> list[Application]:
     """Read the tracker into normalized Application records. Never writes."""
     with open(path, "r", newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
+
+    rows = [r for r in rows if not is_excluded(r.get("Company", ""))]
 
     return [
         Application(
