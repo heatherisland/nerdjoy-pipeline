@@ -1,0 +1,33 @@
+# Secrets - never commit
+.env
+*.pem
+*-service-account*.json
+service_account.json
+
+# Personal data - never commit
+resumes/
+outreach/
+contacts/
+*.csv
+!tests/fixtures/sample_tracker.csv
+!dbt/seeds/applications_seed.csv
+
+# Generated artifacts
+metrics.json
+dashboard/dist/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.coverage
+
+# macOS / editors
+.DS_Store
+.idea/
+*.swp

@@ -1,0 +1,11 @@
+Priority,Company,Role,Location,Type,Salary,Status,Applied Date,Next Action,URL,Notes,Discovered Date,Referral Needed,Referral Status,Referral Deadline,Apply Via
+HIGH,Acme Data Co,Analytics Engineer,Remote,Remote,$180K-$210K,Applied,2026-08-01,Follow up,https://example.invalid/1,Strong fit,2026-07-25,YES,Outreach Sent,2026-07-30,Greenhouse
+HIGH,Borealis Systems,Data Platform Engineer,Remote,Remote,$190K-$220K,Phone Screen,2026-08-05,Prep screen,https://example.invalid/2,Referral landed,2026-07-28,YES,Got Referral,2026-08-02,Lever
+MEDIUM,Cindergrid,Solutions Architect,"Remote, US",Remote,$170K-$200K,To Apply,,Apply,https://example.invalid/3,Queued,2026-08-10,NO,Not Needed,,Ashby
+LOW,Delta Loop,BI Developer,Remote,Remote,$150K-$170K,Rejected,2026-07-15,None,https://example.invalid/4,Closed,2026-07-10,NO,Not Needed,,LinkedIn
+MEDIUM,Everwake Labs,MarTech Engineer,Remote,Remote,$175K-$195K,Applied,2026-08-12,Wait,https://example.invalid/5,Dirty referral-needed value,2026-08-01,2026-08-01,Outreach Pending,2026-08-06,Company Site
+MEDIUM,Foxglove AI,Integrations Engineer,Remote,Remote,$165K-$185K,Applied,2026-08-14,Wait,https://example.invalid/6,Dirty referral-status value,2026-08-03,NO,NO,,Company site
+LOW,Grayharbor,Data Analyst,Remote,Remote,$140K-$160K,Withdrew,2026-08-15,None,https://example.invalid/7,Case-variant apply via,2026-08-04,NO,Not Needed,,Company Website
+HIGH,Hollowpine,Forward Deployed Engineer,Remote,Remote,$200K-$230K,Offer,2026-08-20,Negotiate,https://example.invalid/8,Best outcome,2026-08-05,YES,Got Referral,2026-08-10,Greenhouse
+MEDIUM,Ironvale,Sales Engineer,Remote,Remote,$160K-$180K,Recruiter Call,2026-08-22,Call Thursday,https://example.invalid/9,In progress,2026-08-08,YES,Connection Pending,2026-08-13,LinkedIn Easy Apply
+MEDIUM,Junipergate,Implementation Consultant,Remote,Remote,$155K-$175K,To Apply,,Apply,https://example.invalid/10,Queued,2026-08-18,NO,Not Needed,,Workable
