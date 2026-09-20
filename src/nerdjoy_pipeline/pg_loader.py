@@ -1,0 +1,107 @@
+"""Load the tracker into cloud Postgres as a Fivetran source.
+
+Postgres MUST be cloud-reachable (Neon or Supabase free tier). Fivetran is
+a hosted service and cannot reach localhost. Reads of the tracker are
+read-only; Postgres holds a copy, never the original.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import sys
+
+from nerdjoy_pipeline.tracker import Application, read_tracker
+
+CREATE_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS applications (
+    application_key TEXT PRIMARY KEY,
+    company         TEXT NOT NULL,
+    role            TEXT NOT NULL,
+    status          TEXT NOT NULL,
+    priority        TEXT NOT NULL,
+    referral_needed BOOLEAN NOT NULL,
+    referral_status TEXT NOT NULL,
+    apply_via       TEXT NOT NULL,
+    applied_date    DATE,
+    discovered_date DATE,
+    loaded_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+)
+"""
+
+UPSERT_SQL = """
+INSERT INTO applications (
+    application_key, company, role, status, priority,
+    referral_needed, referral_status, apply_via, applied_date, discovered_date
+) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (application_key) DO UPDATE SET
+    status          = EXCLUDED.status,
+    priority        = EXCLUDED.priority,
+    referral_needed = EXCLUDED.referral_needed,
+    referral_status = EXCLUDED.referral_status,
+    apply_via       = EXCLUDED.apply_via,
+    applied_date    = EXCLUDED.applied_date,
+    discovered_date = EXCLUDED.discovered_date,
+    loaded_at       = now()
+"""
+
+
+def application_key(app: Application) -> str:
+    """Stable identity for an application: company plus role."""
+    raw = f"{app.company.strip().lower()}|{app.role.strip().lower()}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def to_row(app: Application) -> tuple:
+    return (
+        application_key(app),
+        app.company,
+        app.role,
+        app.status,
+        app.priority,
+        app.referral_needed,
+        app.referral_status,
+        app.apply_via,
+        app.applied_date,
+        app.discovered_date,
+    )
+
+
+def load_applications(apps: list[Application], conn) -> int:
+    """Create the table if needed and upsert every application. Idempotent."""
+    cur = conn.cursor()
+    cur.execute(CREATE_TABLE_SQL)
+    cur.executemany(UPSERT_SQL, [to_row(a) for a in apps])
+    conn.commit()
+    return len(apps)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Load the tracker into Postgres")
+    parser.add_argument(
+        "--tracker",
+        default=os.environ.get(
+            "TRACKER_PATH", "/Users/heatherbarry/claude-linkedin-assistant/job_tracker.csv"
+        ),
+    )
+    args = parser.parse_args(argv)
+
+    dsn = os.environ.get("PG_CONNECTION_STRING")
+    if not dsn:
+        print(
+            "PG_CONNECTION_STRING is not set. Copy .env.example to .env and fill it in.",
+            file=sys.stderr,
+        )
+        return 1
+
+    import psycopg  # imported here so the tests never need the driver
+
+    apps = read_tracker(args.tracker)
+    with psycopg.connect(dsn) as conn:
+        count = load_applications(apps, conn)
+    print(f"Upserted {count} applications into Postgres")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
