@@ -27,7 +27,9 @@ outreach/
 contacts/
 *.csv
 !tests/fixtures/sample_tracker.csv
-!dbt/seeds/applications_seed.csv
+# dbt/seeds/applications_seed.csv is generated from the real tracker and holds
+# real company names. It is NEVER committed. CI uses the fictional fixture below.
+!dbt/seeds/sample_seed.csv
 
 # Generated artifacts
 metrics.json
