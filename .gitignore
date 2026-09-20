@@ -1,8 +1,25 @@
 # Secrets - never commit
+# Anything .env*, so .env.local and .env.production are covered too, with the
+# committed template negated back in.
 .env
+.env.*
+!.env.example
 *.pem
+*.key
+*.p12
+# Service-account and other credential JSON, under whatever name it is saved.
 *-service-account*.json
 service_account.json
+sa.json
+credentials.json
+client_secret*.json
+gcp-*.json
+# dbt stores warehouse credentials here by convention.
+profiles.yml
+dbt/profiles.yml
+# Cloud CLI state.
+.gcloud/
+.aws/
 
 # Personal data - never commit
 resumes/
