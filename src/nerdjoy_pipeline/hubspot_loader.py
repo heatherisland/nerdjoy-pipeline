@@ -69,6 +69,23 @@ def parse_target_companies(path: str | Path) -> list[TargetCompany]:
     return companies
 
 
+def web_domain(company: TargetCompany) -> str:
+    """Best-effort web domain for a target company, used to dedupe in HubSpot.
+
+    TargetCompany.domain is NOT a web domain: it holds the markdown section
+    heading ("Domain 1 - MarTech ..."), and board_url is an ATS host shared by
+    every company on that platform (jobs.ashbyhq.com, boards.greenhouse.io), so
+    neither can identify a company. The ATS slug is the only per-company handle
+    available, so the domain is derived from it. A slug that already contains a
+    dot is treated as domain-like and used as is, because appending ".com" to
+    "customer.io" would yield the wrong "customerio.com".
+    """
+    slug = company.slug.strip().lower()
+    if not slug:
+        return ""
+    return slug if "." in slug else f"{slug}.com"
+
+
 def to_hubspot_properties(company: TargetCompany) -> dict[str, str]:
     return {
         "name": company.name,
@@ -78,13 +95,46 @@ def to_hubspot_properties(company: TargetCompany) -> dict[str, str]:
         "ats_slug": company.slug,
         "target_domain": company.domain,
         "stage_size": company.stage_size,
+        # HubSpot dedupes on domain. Without it a second run creates a second
+        # copy of every company, which is exactly what the original POST-only
+        # loader did.
+        "domain": web_domain(company),
     }
 
 
+def _find_company_id(client, prop: str, value: str) -> str | None:
+    """Search HubSpot for one company whose `prop` equals `value`."""
+    if not value:
+        return None
+    payload = {
+        "filterGroups": [
+            {"filters": [{"propertyName": prop, "operator": "EQ", "value": value}]}
+        ],
+        "limit": 1,
+    }
+    results = client.post(f"{COMPANIES_ENDPOINT}/search", payload).get("results") or []
+    return results[0]["id"] if results else None
+
+
 def upsert_companies(companies: list[TargetCompany], client) -> int:
-    """POST each company. `client` needs a post(url, json) -> dict method."""
+    """Create or update each company. Safe to run repeatedly.
+
+    Heather's portal already holds real companies, so this must never blindly
+    create: it searches by domain, then by name, and PATCHes a match instead of
+    POSTing a duplicate. `client` needs post(url, json) and patch(url, json).
+
+    Returns the number of companies processed, not the number created.
+    """
     for company in companies:
-        client.post(COMPANIES_ENDPOINT, {"properties": to_hubspot_properties(company)})
+        properties = to_hubspot_properties(company)
+        existing = _find_company_id(client, "domain", properties.get("domain", ""))
+        if existing is None:
+            existing = _find_company_id(client, "name", company.name)
+
+        if existing is None:
+            client.post(COMPANIES_ENDPOINT, {"properties": properties})
+        else:
+            client.patch(f"{COMPANIES_ENDPOINT}/{existing}", {"properties": properties})
     return len(companies)
 
 
@@ -99,6 +149,11 @@ class _RequestsClient:
 
     def post(self, url: str, json: dict) -> dict:
         response = self._session.post(url, json=json, timeout=30)
+        response.raise_for_status()
+        return response.json()
+
+    def patch(self, url: str, json: dict) -> dict:
+        response = self._session.patch(url, json=json, timeout=30)
         response.raise_for_status()
         return response.json()
 
