@@ -3029,7 +3029,7 @@ Append to `docs/runbook.md`:
 > Record today's date. The trial is roughly 14 days. Capture proof the moment the first sync succeeds.
 >
 > 1. Destinations > add BigQuery. Use the **billing-enabled** project. A pure sandbox project is rejected here; that is why billing was enabled earlier.
-> 2. Connectors > add Postgres. Host is the Neon endpoint, not localhost. Fivetran is hosted and cannot reach a local database. Enable `sslmode=require`. Sync the `public.applications` table only.
+> 2. Connectors > add Postgres. Host is the Supabase endpoint, not localhost. Fivetran is hosted and cannot reach a local database. Enable `sslmode=require`. Sync the `public.applications` table only.
 > 3. Connectors > add HubSpot. Authorize with the same HubSpot account. Sync the Companies object only, to keep row counts low.
 > 4. Run both connectors' initial sync.
 > 5. Confirm in BigQuery that `<raw_schema>.applications` and the HubSpot company table exist and are populated.
@@ -3093,7 +3093,7 @@ dbt run
 dbt test
 ```
 
-Expected: every model builds from the Fivetran-landed table; every test still passes. Row counts match the seed run (467 applications). If a test fails now but passed on the seed, the connector's type mapping differs; fix the staging cast, not the test.
+Expected: every model builds from the Fivetran-landed table; every test still passes. Row counts match the seed run: 466 seed rows collapsing to 460 model rows. 467 was a miscount that included the CSV header. 460 is correct, not a sync failure. If a test fails now but passed on the seed, the connector's type mapping differs; fix the staging cast, not the test.
 
 - [ ] **Step 6: Commit**
 

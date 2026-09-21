@@ -54,3 +54,6 @@ venv/
 
 # Real agency names. Only the fictional example is committed.
 config/agency_channels.txt
+
+# Proof screenshots: these show real company names. Local only.
+docs/proof/

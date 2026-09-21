@@ -66,3 +66,54 @@ expect no real spend.
 6. In `.env`, set `BIGQUERY_PROJECT`, `BIGQUERY_DATASET=nerdjoy_pipeline`, and `GOOGLE_APPLICATION_CREDENTIALS` to that path.
 7. BigQuery > create the dataset `nerdjoy_pipeline`, location US.
 8. `cp dbt/profiles.yml.example ~/.dbt/profiles.yml`
+
+## Hightouch (free tier) - DONE 2026-09-21
+
+Verified end to end. Source id 53438 (BigQuery).
+
+Prerequisites already completed, do not redo:
+
+- IAM: `roles/bigquery.user` and `roles/bigquery.dataViewer` granted to
+  `gtm-job-search@gtm-job-search-engine.iam.gserviceaccount.com`. Note the
+  service account also holds `roles/owner` on the project, so these grants were
+  already implied. Consider dropping owner once every integration is wired.
+- Lightning sync schemas `hightouch_audit` and `hightouch_planner` exist in
+  BigQuery. The Hightouch UI shows these as shell commands, but they are SQL:
+  run them in the BigQuery console or via `bq query --use_legacy_sql=false`.
+- HubSpot company properties `referral_score` and `open_application_count`
+  were created via the API, both numeric, in the Company information group.
+  Plan Task 10 step 6 says to create them first; that is done.
+
+Models: `mart_referral_scoring` (98 rows, key `company`), `fct_funnel`
+(6 rows, key `status`). `fct_funnel` has no sync, by design.
+
+Syncs, both enabled on a 1 hour interval:
+
+- HUBSPOT `15546905`: upsert into Companies, match `company` to `name`,
+  maps `referral_score` and `open_application_count`. Verified against the
+  HubSpot API: 98 companies carry a real score, 0 failed.
+- SHEET `15547600`: mode `mirror` into "NerdJoy Pipeline - Warm Intro
+  Targets". Verified by reading the sheet: 98 data rows plus header
+  (`company`, `open_application_count`, `latest_discovered_date`,
+  `referral_score`).
+
+98 of the 131 HubSpot companies get a score. That is correct: the mart only
+includes companies that qualify for warm intro scoring. Blank is not failure.
+
+Deviations from the plan, both accepted:
+
+- The plan specifies sync mode `overwrite`; the sheet sync uses `mirror`.
+  Mirror deletes rows that leave the model, which self-cleans stale targets.
+- A third destination exists, `Google Sheets (Service Account)` id 169318,
+  with no sync attached. Safe to delete.
+
+Reading the sheet from code requires two things that are easy to miss: the
+Google Sheets API enabled on the project, and the sheet shared with the
+service account address above as Viewer. Hightouch itself does not need
+either, since it writes with its own Google authorization.
+
+`.env` keys: `HIGHTOUCH_API_KEY`, `HIGHTOUCH_SYNC_ID_HUBSPOT`,
+`HIGHTOUCH_SYNC_ID_SHEET`, `HIGHTOUCH_SHEET_ID`.
+
+Proof screenshots belong in `docs/proof/`, which is gitignored because they
+show real company names.
