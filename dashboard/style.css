@@ -1,0 +1,88 @@
+:root {
+  --bg: #ffffff;
+  --fg: #12141a;
+  --muted: #5b6272;
+  --line: #e3e6ec;
+  --accent: #4338ca;
+  --accent-soft: #eef0ff;
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0f14;
+    --fg: #eef0f5;
+    --muted: #9aa3b5;
+    --line: #232733;
+    --accent: #a5b4fc;
+    --accent-soft: #1a1f33;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+main { max-width: 860px; margin: 0 auto; padding: 48px 16px 64px; }
+
+.eyebrow {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin: 0 0 12px;
+}
+
+.hero h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.15; margin: 0 0 16px; }
+.hero .sub { color: var(--muted); font-size: 18px; max-width: 62ch; margin: 0; }
+
+h2 { font-size: 20px; margin: 48px 0 16px; }
+.note { color: var(--muted); font-size: 15px; margin: 0 0 16px; }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 40px;
+}
+
+.tile {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--accent-soft);
+}
+
+.tile .value { font-size: 30px; font-weight: 650; line-height: 1.1; }
+.tile .label { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+.bar-row { display: grid; grid-template-columns: 130px 1fr 48px; gap: 10px; align-items: center; margin-bottom: 8px; }
+.bar-row .name { font-size: 14px; color: var(--muted); }
+.bar-row .count { font-size: 14px; text-align: end; font-variant-numeric: tabular-nums; }
+.bar { height: 10px; border-radius: 999px; background: var(--accent); min-width: 2px; }
+.bar-track { background: var(--line); border-radius: 999px; }
+
+.arch { list-style: none; padding: 0; margin: 0; }
+.arch li { border-left: 2px solid var(--line); padding: 10px 0 10px 16px; font-size: 15px; }
+.lane {
+  display: inline-block;
+  min-width: 108px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+.generated { font-size: 13px; }
+
+@media (max-width: 520px) {
+  .bar-row { grid-template-columns: 96px 1fr 40px; }
+  .lane { display: block; min-width: 0; margin-bottom: 2px; }
+}

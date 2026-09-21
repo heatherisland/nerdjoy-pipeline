@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nerdjoy // Pipeline</title>
+<meta name="description" content="A job search run as a go-to-market pipeline, on a real modern data stack.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header class="hero">
+    <p class="eyebrow">nerdjoy // Pipeline</p>
+    <h1>I run my job search like a go-to-market motion.</h1>
+    <p class="sub">
+      Target companies are accounts. Hiring managers are leads. Referrals are warm intros.
+      The tracker is the CRM. Here is the stack that runs it, and the real pipeline data.
+    </p>
+  </header>
+
+  <section class="tiles" id="tiles" aria-label="Pipeline metrics"></section>
+
+  <section aria-labelledby="funnel-heading">
+    <h2 id="funnel-heading">The funnel</h2>
+    <div class="funnel" id="funnel"></div>
+  </section>
+
+  <section aria-labelledby="arch-heading">
+    <h2 id="arch-heading">The stack</h2>
+    <p class="note">Every tool below is wired and has run for real. Nothing here is aspirational.</p>
+    <ol class="arch">
+      <li><span class="lane">Sources</span> Application tracker (Postgres), HubSpot CRM, ATS boards</li>
+      <li><span class="lane">Ingest</span> Fivetran connectors</li>
+      <li><span class="lane">Warehouse</span> BigQuery, raw and analytics datasets</li>
+      <li><span class="lane">Transform</span> dbt Core, staging models into funnel and scoring marts</li>
+      <li><span class="lane">Activate</span> Hightouch reverse ETL into HubSpot and a daily targets sheet</li>
+      <li><span class="lane">Orchestrate</span> Airflow on Astro, a single scheduled DAG</li>
+      <li><span class="lane">Control plane</span> A Claude agent reads the marts and drafts outreach for me to approve</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="activity-heading">
+    <h2 id="activity-heading">Activity over time</h2>
+    <div class="activity" id="activity"></div>
+  </section>
+
+  <section aria-labelledby="channels-heading">
+    <h2 id="channels-heading">Where applications go</h2>
+    <div class="channels" id="channels"></div>
+  </section>
+
+  <footer>
+    <p>Aggregates only. No company names, no contacts, no personal data.</p>
+    <p class="generated">Last refreshed <span id="generated"></span></p>
+  </footer>
+</main>
+
+<script id="metrics-data" type="application/json">__METRICS_JSON__</script>
+<script src="app.js"></script>
+</body>
+</html>

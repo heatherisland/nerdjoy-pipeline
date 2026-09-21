@@ -23,3 +23,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v"
+# The dashboard build script lives at the repo root, not under src/, so the
+# root must be importable for `from dashboard.build import ...` to resolve.
+pythonpath = ["."]
