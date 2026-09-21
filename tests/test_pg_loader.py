@@ -87,3 +87,38 @@ def test_running_load_twice_produces_the_same_rows(sample_tracker_path: Path):
     first = [to_row(a) for a in apps]
     second = [to_row(a) for a in read_tracker(sample_tracker_path)]
     assert first == second
+
+
+# Position of apply_via in the tuple to_row returns.
+APPLY_VIA_IDX = 7
+
+
+def test_agency_names_are_generalized_before_reaching_postgres():
+    """Agency names are real companies. They must be collapsed at the load
+    boundary so they never reach cloud infrastructure at all, not merely be
+    filtered out of the published artifact."""
+    from nerdjoy_pipeline.pg_loader import to_row
+    from nerdjoy_pipeline.tracker import Application
+
+    agencies = frozenset({"someagency staffing"})
+    app = Application(
+        company="Acme", role="r", status="Applied", priority="HIGH",
+        referral_needed=False, referral_status="Not Needed",
+        apply_via="SomeAgency Staffing", applied_date=None, discovered_date=None,
+    )
+    row = to_row(app, agencies=agencies)
+    assert row[APPLY_VIA_IDX] == "Staffing Agency"
+    assert "someagency" not in str(row).lower()
+
+
+def test_non_agency_channels_pass_through_unchanged():
+    from nerdjoy_pipeline.pg_loader import to_row
+    from nerdjoy_pipeline.tracker import Application
+
+    app = Application(
+        company="Acme", role="r", status="Applied", priority="HIGH",
+        referral_needed=False, referral_status="Not Needed",
+        apply_via="Greenhouse", applied_date=None, discovered_date=None,
+    )
+    row = to_row(app, agencies=frozenset({"someagency staffing"}))
+    assert row[APPLY_VIA_IDX] == "Greenhouse"

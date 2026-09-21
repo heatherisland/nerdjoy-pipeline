@@ -11,6 +11,7 @@ import hashlib
 import os
 import sys
 
+from nerdjoy_pipeline.metrics import generalize_channel
 from nerdjoy_pipeline.tracker import Application, read_tracker
 
 CREATE_TABLE_SQL = """
@@ -52,7 +53,15 @@ def application_key(app: Application) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def to_row(app: Application) -> tuple:
+def to_row(app: Application, agencies: frozenset[str] | None = None) -> tuple:
+    """Build the Postgres row.
+
+    apply_via is generalized HERE, at the boundary, rather than downstream:
+    staffing agency names are real companies, and collapsing them only at
+    publish time would still have replicated them into BigQuery via Fivetran.
+    Everything past this function is cloud infrastructure, so the name must
+    not survive the call.
+    """
     return (
         application_key(app),
         app.company,
@@ -61,7 +70,7 @@ def to_row(app: Application) -> tuple:
         app.priority,
         app.referral_needed,
         app.referral_status,
-        app.apply_via,
+        generalize_channel(app.apply_via, agencies),
         app.applied_date,
         app.discovered_date,
     )
