@@ -86,10 +86,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    dsn = os.environ.get("PG_CONNECTION_STRING")
+    # DATABASE_URL is what .env and .env.example define, and what Supabase and
+    # most hosts hand you. PG_CONNECTION_STRING is accepted as an alias so an
+    # existing environment keeps working.
+    dsn = os.environ.get("DATABASE_URL") or os.environ.get("PG_CONNECTION_STRING")
     if not dsn:
         print(
-            "PG_CONNECTION_STRING is not set. Copy .env.example to .env and fill it in.",
+            "DATABASE_URL is not set. Copy .env.example to .env and fill it in.",
             file=sys.stderr,
         )
         return 1

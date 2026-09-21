@@ -2562,10 +2562,10 @@ TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "dashboard"
 def metrics_file(tmp_path: Path) -> Path:
     payload = {
         "generated_at": "2026-09-20",
-        "totals": {"applications": 467, "companies": 379},
-        "funnel": {"To Apply": 199, "Applied": 238, "Offer": 1},
+        "totals": {"applications": 466, "companies": 378},
+        "funnel": {"To Apply": 199, "Applied": 238, "Offer": 0},
         "referrals": {"needed": 124, "outreach_sent": 3, "got_referral": 2,
-                      "conversion_pct": 1.6},
+                      "conversion_pct": 0.8},
         "channels": {"LinkedIn Easy Apply": 81, "LinkedIn": 79},
         "activity": [{"month": "2026-08", "applied": 40}],
     }
@@ -2585,7 +2585,7 @@ def test_metrics_are_inlined_not_fetched(
 ):
     out = build_dashboard(metrics_file, TEMPLATE_DIR, tmp_path / "dist", sample_tracker_path)
     html = out.read_text()
-    assert "467" in html
+    assert "466" in html
     assert "fetch(" not in html  # no runtime fetch; the page is self-contained
 
 
