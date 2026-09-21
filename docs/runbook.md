@@ -97,8 +97,15 @@ Syncs, both enabled on a 1 hour interval:
   (`company`, `open_application_count`, `latest_discovered_date`,
   `referral_score`).
 
-98 of the 131 HubSpot companies get a score. That is correct: the mart only
-includes companies that qualify for warm intro scoring. Blank is not failure.
+98 companies get a score. That is correct: the mart only includes companies
+that qualify for warm intro scoring. Blank is not failure.
+
+Corrected 2026-09-21: this line previously said "98 of the 131 HubSpot
+companies". HubSpot now holds 220 company records, 89 of them created at
+17:17 by the Hightouch sync itself, so the sync has been inserting rather
+than only updating. Those 220 rows carry only 209 distinct names plus 11
+null names, which means Hightouch is also creating duplicates on name
+variants. Worth cleaning up before the CRM count is quoted anywhere public.
 
 Deviations from the plan, both accepted:
 
@@ -184,3 +191,46 @@ a public dashboard. Fix by correcting the row in `job_tracker.csv` and
 reloading. The alternative, adding `discovered_date` to `application_key` so
 all 466 rows survive, changes `applications_total` to 466 and touches
 Postgres, dbt and Hightouch.
+
+## Fivetran HubSpot connector - DONE 2026-09-21
+
+Closes the loop. Hightouch writes scored companies into HubSpot; Fivetran
+brings HubSpot's own view back so the warehouse can see CRM state it does not
+itself produce.
+
+Landed at `gtm-job-search-engine.hubspot.company`, 220 rows.
+`company_property_history` (8,997 rows) syncs automatically alongside it and
+is not used.
+
+Schema selection defaulted to ALL schemas here too. Only `company` is
+selected. Same warning as the Postgres connector: never let the default
+through.
+
+Only `lifecyclestage` is genuinely independent of this pipeline.
+`referral_score` and `open_application_count` were written by Hightouch from
+this very warehouse, so reading them back would be circular.
+`hs_lastmodifieddate` was evaluated and REJECTED as an enrichment field: 98
+records are stamped at exactly 17:17, matching the 98 Hightouch writes, so it
+measures when the sync ran rather than when anything changed. Publishing it
+would have been a cron timestamp presented as engagement data.
+
+Fivetran prefixes HubSpot properties with `property_`, so the columns are
+`property_name`, `property_lifecyclestage`, `property_createdate`.
+
+Company name is the only key the two systems share. `stg_crm_companies`
+deduplicates on lowercased, trimmed name (most recent `createdate` wins) to
+keep the join one-to-one; `unique_dim_company_company` is the guard that
+catches any fan-out.
+
+The join is partial and that is published honestly: 128 of 378 companies
+match, 33.9 percent. The matched subset was checked for skew and is
+representative (86 vs 87 percent single-application, same average
+applications per tier), so a lifecycle rate over it is defensible. Three
+metrics ship together so the denominator is visible rather than implied:
+
+- `crm_known_companies` 128
+- `crm_coverage_pct` 33.9
+- `crm_opportunity_pct` 16.4 (21 of 128)
+
+Reporting the opportunity rate without the coverage would suggest it
+describes the whole pipeline. It does not.

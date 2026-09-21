@@ -18,6 +18,16 @@ models:
         tests:
           - accepted_values:
               values: ["engaged", "multi-application", "single-application"]
+      - name: crm_is_known
+        description: True when HubSpot holds a company matching this name.
+        tests: [not_null]
+      - name: crm_lifecycle_stage
+        description: >
+          HubSpot lifecycle stage, null when crm_is_known is false. Not
+          written by this pipeline, which is what makes it real enrichment.
+        tests:
+          - accepted_values:
+              values: ["lead", "opportunity"]
 
   - name: mart_referral_scoring
     description: Hightouch source. Companies ranked by warm-intro priority.

@@ -38,3 +38,14 @@ models:
         tests: [not_null, unique]
       - name: application_count
         tests: [not_null]
+
+  - name: stg_crm_companies
+    description: HubSpot companies, deduplicated on name for a one-to-one join.
+    columns:
+      - name: company_key
+        description: Lowercased, trimmed company name. The join key.
+        tests: [not_null, unique]
+      - name: lifecycle_stage
+        tests:
+          - accepted_values:
+              values: ["lead", "opportunity"]
