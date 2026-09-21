@@ -126,3 +126,51 @@ def test_is_excluded_is_case_insensitive():
     assert is_excluded("APPLY DIGITAL")
     assert is_excluded("  Apply Digital  ")
     assert not is_excluded("Apply Digital Systems")
+
+
+def test_parse_date_accepts_the_us_slash_format_the_tracker_actually_writes():
+    """The live tracker stores M/D/YY, not ISO. Parsing only ISO silently
+    dropped all 252 applied dates and left the activity chart empty."""
+    from datetime import date
+
+    from nerdjoy_pipeline.tracker import parse_date
+
+    assert parse_date("9/7/26") == date(2026, 9, 7)
+    assert parse_date("12/25/26") == date(2026, 12, 25)
+    assert parse_date("7/9/26") == date(2026, 7, 9)
+
+
+def test_parse_date_still_accepts_iso():
+    from datetime import date
+
+    from nerdjoy_pipeline.tracker import parse_date
+
+    assert parse_date("2026-09-07") == date(2026, 9, 7)
+
+
+def test_parse_date_rejects_junk():
+    from nerdjoy_pipeline.tracker import parse_date
+
+    assert parse_date("") is None
+    assert parse_date("not a date") is None
+    assert parse_date("13/45/99") is None
+
+
+def test_activity_timeseries_is_populated_from_the_real_tracker_format():
+    from nerdjoy_pipeline.metrics import activity_timeseries
+    from nerdjoy_pipeline.tracker import Application, parse_date
+
+    apps = [
+        Application(
+            company="Acme", role="r", status="Applied", priority="HIGH",
+            referral_needed=False, referral_status="", apply_via="LinkedIn",
+            applied_date=parse_date("9/7/26"), discovered_date=None,
+        ),
+        Application(
+            company="Beta", role="r", status="Applied", priority="HIGH",
+            referral_needed=False, referral_status="", apply_via="LinkedIn",
+            applied_date=parse_date("8/14/26"), discovered_date=None,
+        ),
+    ]
+    series = activity_timeseries(apps)
+    assert series == [{"month": "2026-08", "applied": 1}, {"month": "2026-09", "applied": 1}]

@@ -56,15 +56,29 @@ class Application:
     discovered_date: date | None
 
 
+# The tracker is maintained in a spreadsheet that writes M/D/YY, but dates
+# entered or repaired by hand arrive as ISO. Both must parse: accepting only
+# ISO silently returned None for every real applied_date, which emptied the
+# activity chart without any error. Two-digit years resolve via %y, which maps
+# 26 to 2026.
+_DATE_FORMATS = ("%Y-%m-%d", "%m/%d/%y", "%m/%d/%Y")
+
+
 def parse_date(raw: str) -> date | None:
-    """Parse YYYY-MM-DD, returning None for blank or unparseable input."""
+    """Parse the tracker's date formats, returning None if none of them fit."""
     raw = (raw or "").strip()
     if not raw:
         return None
     try:
         return datetime.strptime(raw, "%Y-%m-%d").date()
     except ValueError:
-        return None
+        pass
+    for fmt in _DATE_FORMATS[1:]:
+        try:
+            return datetime.strptime(raw, fmt).date()
+        except ValueError:
+            continue
+    return None
 
 
 def normalize_apply_via(raw: str) -> str:
