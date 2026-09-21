@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: stg_applications
+    description: One row per application, normalized from the tracker.
+    columns:
+      - name: application_key
+        description: Stable SHA-256 of company plus role.
+        tests:
+          - not_null
+          - unique
+      - name: company
+        tests: [not_null]
+      - name: status
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                ["To Apply", "Applied", "Recruiter Call", "Phone Screen",
+                 "Onsite", "Offer", "Rejected", "Withdrew"]
+      - name: priority
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["HIGH", "MEDIUM", "LOW"]
+      - name: referral_status
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                ["Not Needed", "Outreach Pending", "Connection Pending",
+                 "Outreach Sent", "Got Referral", "Declined", "No Referral"]
+
+  - name: stg_companies
+    description: One row per company with rolled-up application counts.
+    columns:
+      - name: company
+        tests: [not_null, unique]
+      - name: application_count
+        tests: [not_null]

@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: fct_funnel
+    description: Application counts by funnel status.
+    columns:
+      - name: status
+        tests: [not_null, unique]
+      - name: application_count
+        tests: [not_null]
+
+  - name: dim_company
+    description: Company grain. Contains real names, never published.
+    columns:
+      - name: company
+        tests: [not_null, unique]
+      - name: engagement_tier
+        tests:
+          - accepted_values:
+              values: ["engaged", "multi-application", "single-application"]
+
+  - name: mart_referral_scoring
+    description: Hightouch source. Companies ranked by warm-intro priority.
+    columns:
+      - name: company
+        tests: [not_null, unique]
+      - name: referral_score
+        tests: [not_null]
+
+  - name: mart_public_metrics
+    description: The only publishable mart. Aggregate values only, no names.
+    columns:
+      - name: metric_name
+        tests: [not_null, unique]
+      - name: metric_value
+        tests: [not_null]

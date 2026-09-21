@@ -1,0 +1,33 @@
+name: nerdjoy_pipeline
+version: "1.0.0"
+config-version: 2
+
+profile: nerdjoy_pipeline
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  nerdjoy_pipeline:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
+
+seeds:
+  nerdjoy_pipeline:
+    applications_seed:
+      +column_types:
+        application_key: STRING
+        company: STRING
+        role: STRING
+        status: STRING
+        priority: STRING
+        referral_needed: BOOLEAN
+        referral_status: STRING
+        apply_via: STRING
+        applied_date: DATE
+        discovered_date: DATE

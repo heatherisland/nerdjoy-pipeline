@@ -23,8 +23,17 @@ appear twice in the tracker, so 466 applications collapse to 460 rows in
 Postgres and in the warehouse. This is expected, not a load failure.
 
 One of the six is a real conflict: the same company and role recorded with
-both `Applied` and `Phone Screen`. Which one survives depends on load order,
-so treat that company's status as unreliable until the tracker is corrected.
+both `Applied` and `Phone Screen`. In Postgres, which one survives depends on
+load order, so treat that company's status as unreliable until the tracker is
+corrected.
+
+In dbt this is no longer load-order dependent. `stg_applications` deduplicates
+on `application_key` with `qualify row_number()`, keeping the most-advanced row
+by funnel position (`Rejected`/`Withdrew` treated as terminal and ranked above
+`Offer`), tie-broken by earliest `discovered_date` then latest `applied_date`.
+The conflicting pair therefore resolves to `Phone Screen` every run. The
+warehouse answer is stable, but it is still a guess at Heather's intent: the
+underlying tracker row is what needs fixing.
 
 If every tracker line must persist as its own row, the key needs a third
 component (discovered_date would do it). That is a schema change affecting

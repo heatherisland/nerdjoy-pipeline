@@ -1,0 +1,58 @@
+-- Source swaps to the Fivetran raw table in Task 12; the contract below is
+-- what every downstream model depends on, so it must not change.
+--
+-- The tracker is keyed on (company, role) but does not enforce that pair as
+-- unique: 466 source rows collapse to 460 distinct application_keys. Six
+-- (company, role) pairs are entered twice, and one of those six carries
+-- genuinely conflicting statuses ('Applied' vs 'Phone Screen'). The schema
+-- contract requires application_key to be unique, so this model resolves the
+-- collisions deterministically instead of letting row order decide: keep the
+-- most-advanced row per key by funnel position, then the earliest discovery
+-- date, then the latest applied date. Nothing here drops a distinct
+-- application; only repeated entries of the same company and role collapse.
+with source as (
+    select * from {{ ref('applications_seed') }}
+),
+
+deduplicated as (
+    select *
+    from source
+    where company is not null and company != ''
+    qualify row_number() over (
+        partition by application_key
+        order by
+            case status
+                -- Rejected and Withdrew are terminal: they record a real
+                -- outcome and outrank an unresolved earlier entry.
+                when 'Rejected' then 7
+                when 'Withdrew' then 7
+                when 'Offer' then 6
+                when 'Onsite' then 5
+                when 'Phone Screen' then 4
+                when 'Recruiter Call' then 3
+                when 'Applied' then 2
+                when 'To Apply' then 1
+                else 0
+            end desc,
+            discovered_date asc nulls last,
+            applied_date desc nulls last
+    ) = 1
+)
+
+select
+    application_key,
+    company,
+    role,
+    status,
+    priority,
+    referral_needed,
+    referral_status,
+    apply_via,
+    applied_date,
+    discovered_date,
+    case
+        when status in ('Recruiter Call', 'Phone Screen', 'Onsite', 'Offer') then true
+        else false
+    end as reached_conversation,
+    case when status = 'Offer' then true else false end as reached_offer
+from deduplicated

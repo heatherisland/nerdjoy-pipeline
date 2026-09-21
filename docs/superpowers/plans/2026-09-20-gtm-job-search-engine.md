@@ -2099,7 +2099,7 @@ Built against a **seed** so every model and test is green before Fivetran exists
 - Consumes: `read_tracker` (Task 2)
 - Produces: BigQuery relations `stg_applications`, `stg_companies`, `fct_funnel`, `dim_company`, `mart_referral_scoring`, `mart_public_metrics`. `mart_public_metrics` has columns `metric_name STRING`, `metric_value NUMERIC` and is the only mart safe to publish.
 
-- [ ] **Step 1: Write the seed generator**
+- [x] **Step 1: Write the seed generator**
 
 `scripts/make_seed.py`:
 
@@ -2171,7 +2171,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 2: Write `dbt/dbt_project.yml`**
+- [x] **Step 2: Write `dbt/dbt_project.yml`**
 
 ```yaml
 name: nerdjoy_pipeline
@@ -2209,7 +2209,7 @@ seeds:
         discovered_date: DATE
 ```
 
-- [ ] **Step 3: Write `dbt/profiles.yml.example`**
+- [x] **Step 3: Write `dbt/profiles.yml.example`**
 
 ```yaml
 # Copy to ~/.dbt/profiles.yml and fill in. Never commit the filled version.
@@ -2227,7 +2227,7 @@ nerdjoy_pipeline:
       priority: interactive
 ```
 
-- [ ] **Step 4: Write the staging models**
+- [x] **Step 4: Write the staging models**
 
 `dbt/models/staging/stg_applications.sql`:
 
@@ -2322,7 +2322,7 @@ models:
         tests: [not_null]
 ```
 
-- [ ] **Step 5: Write the mart models**
+- [x] **Step 5: Write the mart models**
 
 `dbt/models/marts/fct_funnel.sql`:
 
@@ -2478,7 +2478,7 @@ models:
         tests: [not_null]
 ```
 
-- [ ] **Step 6: HUMAN STEP — Heather provisions BigQuery**
+- [x] **Step 6: HUMAN STEP — Heather provisions BigQuery**
 
 Append to `docs/runbook.md`. **Claude does not perform this step.**
 
@@ -2493,7 +2493,7 @@ Append to `docs/runbook.md`. **Claude does not perform this step.**
 > 7. BigQuery > create the dataset `nerdjoy_pipeline`, location US.
 > 8. `cp dbt/profiles.yml.example ~/.dbt/profiles.yml`
 
-- [ ] **Step 7: Generate the seed and run dbt**
+- [x] **Step 7: Generate the seed and run dbt**
 
 ```bash
 source .venv/bin/activate
@@ -2508,7 +2508,7 @@ dbt test
 
 Expected: `dbt seed` loads 467 rows; `dbt run` builds 6 models; `dbt test` passes every test. If `accepted_values` fails, the normalizer in Task 2 has a gap. Fix `tracker.py` and regenerate the seed rather than loosening the test.
 
-- [ ] **Step 8: Verify the public mart contains no names**
+- [x] **Step 8: Verify the public mart contains no names**
 
 ```bash
 cd dbt
@@ -2517,7 +2517,7 @@ dbt show --select mart_public_metrics --limit 50
 
 Expected: only `metric_name` / `metric_value` pairs. Confirm by eye that no company name appears in any `metric_name`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd ~/nerdjoy-pipeline

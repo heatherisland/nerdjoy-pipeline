@@ -1,0 +1,13 @@
+# Copy to ~/.dbt/profiles.yml and fill in. Never commit the filled version.
+nerdjoy_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('BIGQUERY_PROJECT') }}"
+      dataset: "{{ env_var('BIGQUERY_DATASET', 'nerdjoy_pipeline') }}"
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
+      threads: 4
+      location: US
+      priority: interactive
