@@ -45,8 +45,16 @@ def _status_from_metric(metric_name: str) -> str | None:
     return None
 
 
-def payload_from_bigquery_rows(rows: list[dict]) -> dict:
-    """Rebuild the metrics.json shape from mart_public_metrics rows."""
+def payload_from_bigquery_rows(
+    rows: list[dict], channel_rows: list[dict] | None = None
+) -> dict:
+    """Rebuild the metrics.json shape from the marts.
+
+    channel_rows comes from mart_channel_counts, a separate model because
+    mart_public_metrics is a fixed name/value table and channels are a
+    variable set of keys. Order is preserved from the query, which sorts by
+    count descending, so the dashboard's top-8 slice is the real top eight.
+    """
     values = {r["metric_name"]: r["metric_value"] for r in rows}
 
     funnel = {status: 0 for status in FUNNEL_ORDER}
@@ -67,7 +75,9 @@ def payload_from_bigquery_rows(rows: list[dict]) -> dict:
             "got_referral": int(values.get("referrals_got", 0)),
             "conversion_pct": float(values.get("referral_conversion_pct", 0.0)),
         },
-        "channels": {},
+        "channels": {
+            r["channel"]: int(r["application_count"]) for r in (channel_rows or [])
+        },
         "activity": [],
     }
 
@@ -95,11 +105,27 @@ def _fetch_bigquery_rows() -> list[dict]:
     return [dict(row) for row in client.query(query).result()]
 
 
+def _fetch_channel_rows() -> list[dict]:
+    from google.cloud import bigquery
+
+    project = os.environ["BIGQUERY_PROJECT"]
+    dataset = os.environ.get("BIGQUERY_DATASET", "nerdjoy_pipeline")
+    client = bigquery.Client(project=project)
+    query = (
+        f"SELECT channel, application_count "
+        f"FROM `{project}.{dataset}.mart_channel_counts` "
+        f"ORDER BY application_count DESC, channel"
+    )
+    return [dict(row) for row in client.query(query).result()]
+
+
 def export_metrics(
     tracker_path: str | Path, output_path: str | Path, source: str = "tracker"
 ) -> dict:
     if source == "bigquery":
-        body = payload_from_bigquery_rows(_fetch_bigquery_rows())
+        body = payload_from_bigquery_rows(
+            _fetch_bigquery_rows(), channel_rows=_fetch_channel_rows()
+        )
     else:
         body = summary(read_tracker(tracker_path))
     payload = {"generated_at": date.today().isoformat(), **body}

@@ -156,3 +156,42 @@ def test_crm_block_is_absent_when_the_mart_has_no_crm_metrics():
     ]
     payload = payload_from_bigquery_rows(rows)
     assert "crm" not in payload
+
+
+def test_channel_rows_populate_the_channels_block():
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    rows = [
+        {"metric_name": "applications_total", "metric_value": 460},
+        {"metric_name": "companies_total", "metric_value": 378},
+    ]
+    channels = [
+        {"channel": "Company Site", "application_count": 127},
+        {"channel": "LinkedIn", "application_count": 79},
+        {"channel": "Staffing Agency", "application_count": 24},
+    ]
+    payload = payload_from_bigquery_rows(rows, channel_rows=channels)
+    assert payload["channels"]["Company Site"] == 127
+    assert payload["channels"]["Staffing Agency"] == 24
+    assert list(payload["channels"])[0] == "Company Site"
+
+
+def test_channels_block_is_empty_when_no_channel_rows_are_supplied():
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    payload = payload_from_bigquery_rows(
+        [{"metric_name": "applications_total", "metric_value": 1}]
+    )
+    assert payload["channels"] == {}
+
+
+def test_outreach_sent_comes_through_the_mart():
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    rows = [
+        {"metric_name": "applications_total", "metric_value": 460},
+        {"metric_name": "referrals_needed", "metric_value": 122},
+        {"metric_name": "referrals_outreach_sent", "metric_value": 4},
+    ]
+    payload = payload_from_bigquery_rows(rows)
+    assert payload["referrals"]["outreach_sent"] == 4

@@ -6,7 +6,8 @@ with applications as (
 
 referral_base as (
     select count(*) as needed,
-           countif(referral_status = 'Got Referral') as got
+           countif(referral_status = 'Got Referral') as got,
+           countif(referral_status = 'Outreach Sent') as outreach_sent
     from applications
     where referral_needed
 ),
@@ -59,3 +60,6 @@ union all
 select 'crm_opportunity_pct',
        cast(case when known = 0 then 0 else round(opportunities / known * 100, 1) end as numeric)
 from crm_base
+
+union all
+select 'referrals_outreach_sent', cast(outreach_sent as numeric) from referral_base

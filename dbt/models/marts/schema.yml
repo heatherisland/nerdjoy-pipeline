@@ -44,3 +44,16 @@ models:
         tests: [not_null, unique]
       - name: metric_value
         tests: [not_null]
+
+  - name: mart_channel_counts
+    description: >
+      Applications per application channel. Publishable: agency names are
+      generalized upstream in pg_loader, so only tools and job boards remain.
+    columns:
+      - name: channel
+        description: Generalized application channel.
+        tests: [not_null, unique]
+      - name: application_count
+        description: Applications submitted through this channel.
+        tests: [not_null]
+
