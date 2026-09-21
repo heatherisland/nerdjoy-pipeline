@@ -57,3 +57,15 @@ models:
         description: Applications submitted through this channel.
         tests: [not_null]
 
+
+  - name: mart_activity_monthly
+    description: >
+      Applications submitted per calendar month. Publishable: dates and
+      counts only, no company or role detail.
+    columns:
+      - name: month
+        description: Submission month as YYYY-MM.
+        tests: [not_null, unique]
+      - name: applied_count
+        description: Applications submitted in this month.
+        tests: [not_null]

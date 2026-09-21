@@ -195,3 +195,29 @@ def test_outreach_sent_comes_through_the_mart():
     ]
     payload = payload_from_bigquery_rows(rows)
     assert payload["referrals"]["outreach_sent"] == 4
+
+
+def test_activity_rows_populate_the_activity_block():
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    rows = [{"metric_name": "applications_total", "metric_value": 460}]
+    activity = [
+        {"month": "2026-07", "applied_count": 47},
+        {"month": "2026-08", "applied_count": 3},
+        {"month": "2026-09", "applied_count": 199},
+    ]
+    payload = payload_from_bigquery_rows(rows, activity_rows=activity)
+    assert payload["activity"] == [
+        {"month": "2026-07", "applied": 47},
+        {"month": "2026-08", "applied": 3},
+        {"month": "2026-09", "applied": 199},
+    ]
+
+
+def test_activity_block_is_empty_when_no_activity_rows_are_supplied():
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    payload = payload_from_bigquery_rows(
+        [{"metric_name": "applications_total", "metric_value": 1}]
+    )
+    assert payload["activity"] == []

@@ -46,7 +46,9 @@ def _status_from_metric(metric_name: str) -> str | None:
 
 
 def payload_from_bigquery_rows(
-    rows: list[dict], channel_rows: list[dict] | None = None
+    rows: list[dict],
+    channel_rows: list[dict] | None = None,
+    activity_rows: list[dict] | None = None,
 ) -> dict:
     """Rebuild the metrics.json shape from the marts.
 
@@ -78,7 +80,10 @@ def payload_from_bigquery_rows(
         "channels": {
             r["channel"]: int(r["application_count"]) for r in (channel_rows or [])
         },
-        "activity": [],
+        "activity": [
+            {"month": r["month"], "applied": int(r["applied_count"])}
+            for r in (activity_rows or [])
+        ],
     }
 
     # Omitted entirely rather than zero-filled: the tracker source has no CRM
@@ -105,6 +110,20 @@ def _fetch_bigquery_rows() -> list[dict]:
     return [dict(row) for row in client.query(query).result()]
 
 
+def _fetch_activity_rows() -> list[dict]:
+    from google.cloud import bigquery
+
+    project = os.environ["BIGQUERY_PROJECT"]
+    dataset = os.environ.get("BIGQUERY_DATASET", "nerdjoy_pipeline")
+    client = bigquery.Client(project=project)
+    query = (
+        f"SELECT month, applied_count "
+        f"FROM `{project}.{dataset}.mart_activity_monthly` "
+        f"ORDER BY month"
+    )
+    return [dict(row) for row in client.query(query).result()]
+
+
 def _fetch_channel_rows() -> list[dict]:
     from google.cloud import bigquery
 
@@ -124,7 +143,9 @@ def export_metrics(
 ) -> dict:
     if source == "bigquery":
         body = payload_from_bigquery_rows(
-            _fetch_bigquery_rows(), channel_rows=_fetch_channel_rows()
+            _fetch_bigquery_rows(),
+            channel_rows=_fetch_channel_rows(),
+            activity_rows=_fetch_activity_rows(),
         )
     else:
         body = summary(read_tracker(tracker_path))
