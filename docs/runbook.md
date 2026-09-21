@@ -123,3 +123,64 @@ That is stronger evidence than a screenshot, since it was re-derived from the
 live services rather than photographed.
 
 The unused `Google Sheets (Service Account)` destination id 169318 was deleted.
+
+## Fivetran Postgres connector - DONE 2026-09-21
+
+Connection `supabase_postgres`, group `unabashed_bales`, destination
+`Warehouse` (BigQuery). Verified: successful historical sync, 460 loaded
+rows, 25 seconds, confirmed independently from BigQuery.
+
+Landed at `gtm-job-search-engine.supabase_postgres_public.applications`.
+Fivetran names the dataset from the connection name plus source schema and
+ignores whatever dataset you pre-create, so `nerdjoy_pipeline_raw` exists but
+is unused. `sources.yml` points at the real name.
+
+Replication is QUERY-BASED, not CDC. Logical replication cannot work here:
+the Supabase session pooler is required for IPv4 but does not support the
+replication protocol, and the direct host `db.<ref>.supabase.co` is IPv6-only
+while Fivetran egresses from IPv4. Fivetran will still create
+`fivetran_pub` and `fivetran_pg_slot` when you pick CDC, then fail to
+connect to the slot; both were dropped. Nothing public claims CDC, so the
+honesty principle needs no wording change.
+
+Two traps worth knowing on a rebuild:
+
+- A destination belongs to a GROUP. A connection can only write to the
+  destination in its own group. Creating a destination from the wrong screen
+  makes a second group, and the connector then shows "no destination" while a
+  perfectly good destination sits in the other group.
+- After creating a destination, Fivetran walks you into the Fivetran Platform
+  Connector, which syncs 34 tables of Fivetran's own account metadata. It
+  looks like part of setup. It is not. Use "Complete Later".
+
+Schema selection defaulted to ALL 5 Supabase schemas, 39 tables, including
+`auth` (user identities, hashed passwords, sessions, MFA factors) and
+`vault` (encrypted secrets). Only `public.applications` is selected. Never
+let this default through: syncing `auth` into the warehouse would put
+credentials behind a pipeline that feeds a public dashboard.
+
+Sync mode is soft delete, so the raw table carries `_fivetran_deleted`,
+`_fivetran_synced` and `ctid_fivetran_id`. `stg_applications` filters on
+`not coalesce(_fivetran_deleted, false)`.
+
+`statement_timeout` was 120s, below Fivetran's 300s floor. Fixed with
+`alter role postgres set statement_timeout = 0;` (verified in `rolconfig`).
+
+### Open: the conflicting-status row
+
+Swapping the source changed two published metrics: `funnel_applied` 234 ->
+235 and `funnel_phone_screen` 2 -> 1. Totals are unaffected at 460.
+
+Cause: the one (company, role) pair recorded as both 'Applied' and
+'Phone Screen'. Postgres collapses duplicates on `application_key` before
+Fivetran sees them, keeping whichever row loaded last, so the dbt
+funnel-position ranking never gets to choose. The dedupe in
+`stg_applications` still guarantees uniqueness but no longer decides which
+status wins.
+
+That makes `funnel_phone_screen` honestly describable as "whichever row
+Postgres loaded last", which is weaker than intended for a number headed to
+a public dashboard. Fix by correcting the row in `job_tracker.csv` and
+reloading. The alternative, adding `discovered_date` to `application_key` so
+all 466 rows survive, changes `applications_total` to 466 and touches
+Postgres, dbt and Hightouch.
