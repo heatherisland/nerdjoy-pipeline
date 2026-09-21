@@ -17,7 +17,7 @@ from nerdjoy_pipeline.metrics import FUNNEL_ORDER, summary
 from nerdjoy_pipeline.tracker import read_tracker
 
 DEFAULT_TRACKER = os.environ.get(
-    "TRACKER_PATH", "/Users/heatherbarry/claude-linkedin-assistant/job_tracker.csv"
+    "TRACKER_PATH", "../claude-linkedin-assistant/job_tracker.csv"
 )
 DEFAULT_OUTPUT = "metrics.json"
 

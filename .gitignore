@@ -57,3 +57,8 @@ config/agency_channels.txt
 
 # Proof screenshots: these show real company names. Local only.
 docs/proof/
+config/excluded_companies.txt
+
+# Internal build scaffolding: holds real project ids, local paths and
+# decision history. Kept on disk, never published.
+docs/superpowers/

@@ -16,7 +16,7 @@ from nerdjoy_pipeline.pg_loader import application_key  # noqa: E402
 from nerdjoy_pipeline.tracker import read_tracker  # noqa: E402
 
 TRACKER = os.environ.get(
-    "TRACKER_PATH", "/Users/heatherbarry/claude-linkedin-assistant/job_tracker.csv"
+    "TRACKER_PATH", "../claude-linkedin-assistant/job_tracker.csv"
 )
 OUT = Path(__file__).resolve().parents[1] / "dbt" / "seeds" / "applications_seed.csv"
 

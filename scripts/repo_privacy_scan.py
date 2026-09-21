@@ -12,6 +12,7 @@ Exit 0 = clean, exit 1 = names found (printed with file and term).
 """
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -21,9 +22,14 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from nerdjoy_pipeline.guard import VENDOR_TOOL_NAMES  # noqa: E402
-from nerdjoy_pipeline.tracker import read_tracker  # noqa: E402
+from nerdjoy_pipeline.tracker import (  # noqa: E402
+    load_excluded_companies,
+    read_tracker,
+)
 
-DEFAULT_TRACKER = "/Users/heatherbarry/claude-linkedin-assistant/job_tracker.csv"
+DEFAULT_TRACKER = os.environ.get(
+    "TRACKER_PATH", "../claude-linkedin-assistant/job_tracker.csv"
+)
 
 # Tracker companies whose names are also ordinary English that this repo must be
 # able to write. Same reasoning as VENDOR_TOOL_NAMES in the guard: the company
@@ -51,11 +57,20 @@ def main() -> int:
         print(f"SKIP: tracker not found at {tracker}")
         return 0
 
+    # read_tracker drops EXCLUDED_COMPANIES before returning, so a name removed
+    # that way would be invisible to this scan: the one class of name most likely
+    # to have been handled by hand, and so most likely to have been left in source.
+    # Union them back in explicitly. This is the check that would have caught
+    # a hardcoded exclusion sitting in tracker.py while the scan reported PASS.
     names = {
         a.company.strip().lower()
         for a in read_tracker(tracker)
         if len(a.company.strip()) > 3
-    } - ALLOWED
+    }
+    names |= {
+        c.strip().lower() for c in load_excluded_companies() if len(c.strip()) > 3
+    }
+    names -= ALLOWED
 
     files = tracked_files()
     hits: list[tuple[str, str]] = []

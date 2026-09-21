@@ -112,20 +112,21 @@ def test_excluded_company_never_enters_the_pipeline(tmp_path):
     csv_path.write_text(
         "Company,Role,Status,Priority,Referral Needed,Referral Status,"
         "Apply Via,Applied Date,Discovered Date\n"
-        "Apply Digital,Architect,Offer,HIGH,NO,Not Needed,Company Site,,\n"
+        "Vantablack Labs,Architect,Offer,HIGH,NO,Not Needed,Company Site,,\n"
         "Hollowpine,Engineer,Applied,HIGH,NO,Not Needed,Greenhouse,,\n",
         encoding="utf-8",
     )
     before = csv_path.read_bytes()
-    apps = read_tracker(csv_path)
+    apps = read_tracker(csv_path, excluded=frozenset({"vantablack labs"}))
     assert [a.company for a in apps] == ["Hollowpine"]
     assert csv_path.read_bytes() == before
 
 
 def test_is_excluded_is_case_insensitive():
-    assert is_excluded("APPLY DIGITAL")
-    assert is_excluded("  Apply Digital  ")
-    assert not is_excluded("Apply Digital Systems")
+    excluded = frozenset({"vantablack labs"})
+    assert is_excluded("VANTABLACK LABS", excluded)
+    assert is_excluded("  Vantablack Labs  ", excluded)
+    assert not is_excluded("Vantablack Labs Systems", excluded)
 
 
 def test_parse_date_accepts_the_us_slash_format_the_tracker_actually_writes():

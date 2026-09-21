@@ -1,0 +1,3 @@
+# Companies withheld from the pipeline entirely. One per line.
+# Copy to excluded_companies.txt and fill in. That file is gitignored.
+# Example Corp

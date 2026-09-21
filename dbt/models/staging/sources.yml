@@ -7,7 +7,7 @@ sources:
       these tables and rewrites them on every sync; nothing here is edited by
       hand. The dataset name is Fivetran's own convention, derived from the
       connection name plus the source schema.
-    database: gtm-job-search-engine
+    database: "{{ env_var('BIGQUERY_PROJECT') }}"
     schema: supabase_postgres_public
     tables:
       - name: applications
@@ -32,7 +32,7 @@ sources:
       HubSpot's own view back so the warehouse can see CRM state it does not
       itself produce. Only lifecyclestage is genuinely independent of this
       pipeline; the score and application-count properties are ones we wrote.
-    database: gtm-job-search-engine
+    database: "{{ env_var('BIGQUERY_PROJECT') }}"
     schema: hubspot
     tables:
       - name: company

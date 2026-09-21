@@ -7,6 +7,7 @@ so anything introduced by templating is still caught.
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -21,7 +22,7 @@ from nerdjoy_pipeline.guard import (  # noqa: E402
 
 PLACEHOLDER = "__METRICS_JSON__"
 STATIC_FILES = ("style.css", "app.js")
-DEFAULT_TRACKER = "/Users/heatherbarry/claude-linkedin-assistant/job_tracker.csv"
+DEFAULT_TRACKER = os.environ.get("TRACKER_PATH", "../claude-linkedin-assistant/job_tracker.csv")
 
 
 def build_dashboard(

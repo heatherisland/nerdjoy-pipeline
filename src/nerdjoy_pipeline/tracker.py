@@ -8,6 +8,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from datetime import date, datetime
+from functools import lru_cache
 from pathlib import Path
 
 VALID_STATUSES = frozenset(
@@ -116,24 +117,59 @@ def _normalize_choice(raw: str, valid: frozenset[str], fallback: str) -> str:
 
 
 # Companies excluded from the pipeline at Heather's explicit instruction. The
-# source tracker is never modified; these rows are dropped on read, so they reach
-# no downstream consumer: metrics, warehouse, CRM or dashboard. Because an
-# excluded company never reaches a published artifact, it is also dropped from
-# the deny list, which exists only to protect names that could otherwise leak.
-EXCLUDED_COMPANIES: frozenset[str] = frozenset({"apply digital"})
+# source tracker is never modified; these rows are dropped on read, so they
+# reach no downstream consumer: metrics, warehouse, CRM or dashboard.
+#
+# The names live in a gitignored file rather than in this source, for the same
+# reason as config/agency_channels.txt: an excluded company is a REAL company,
+# and hardcoding it here republishes in source the very name the exclusion was
+# meant to withhold. That is not hypothetical. One name sat in this file while
+# repo_privacy_scan.py reported PASS, because the scan derives its deny list
+# from read_tracker, which had already filtered that name out. The scan now
+# unions these names back in, so this file staying empty of them is enforced.
+EXCLUDED_COMPANIES_PATH = (
+    Path(__file__).resolve().parents[2] / "config" / "excluded_companies.txt"
+)
 
 
-def is_excluded(company: str) -> bool:
-    """True if this company is withheld from the pipeline entirely."""
-    return (company or "").strip().lower() in EXCLUDED_COMPANIES
+@lru_cache(maxsize=1)
+def load_excluded_companies(path: str | Path | None = None) -> frozenset[str]:
+    """Read the local exclusion list. Missing file yields an empty set."""
+    target = Path(path) if path is not None else EXCLUDED_COMPANIES_PATH
+    try:
+        lines = target.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return frozenset()
+    return frozenset(
+        stripped.lower()
+        for line in lines
+        if (stripped := line.strip()) and not stripped.startswith("#")
+    )
 
 
-def read_tracker(path: str | Path) -> list[Application]:
-    """Read the tracker into normalized Application records. Never writes."""
+def is_excluded(company: str, excluded: frozenset[str] | None = None) -> bool:
+    """True if this company is withheld from the pipeline entirely.
+
+    Pass `excluded` to supply the list explicitly; the default reads the
+    gitignored local config, so tests never depend on private data.
+    """
+    known = load_excluded_companies() if excluded is None else excluded
+    return (company or "").strip().lower() in known
+
+
+def read_tracker(
+    path: str | Path, excluded: frozenset[str] | None = None
+) -> list[Application]:
+    """Read the tracker into normalized Application records. Never writes.
+
+    Pass `excluded` to supply the exclusion list explicitly; the default reads
+    the gitignored local config, so tests never depend on private data.
+    """
     with open(path, "r", newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
 
-    rows = [r for r in rows if not is_excluded(r.get("Company", ""))]
+    known = load_excluded_companies() if excluded is None else excluded
+    rows = [r for r in rows if not is_excluded(r.get("Company", ""), known)]
 
     return [
         Application(

@@ -69,14 +69,15 @@ expect no real spend.
 
 ## Hightouch (free tier) - DONE 2026-09-21
 
-Verified end to end. Source id 53438 (BigQuery).
+Verified end to end. Source id in `.env`.
 
 Prerequisites already completed, do not redo:
 
-- IAM: `roles/bigquery.user` and `roles/bigquery.dataViewer` granted to
-  `gtm-job-search@gtm-job-search-engine.iam.gserviceaccount.com`. Note the
-  service account also holds `roles/owner` on the project, so these grants were
-  already implied. Consider dropping owner once every integration is wired.
+- IAM: `roles/bigquery.user` and `roles/bigquery.dataViewer` granted to the
+  pipeline service account (address in `.env`, not recorded here: this file is
+  public and a named owner-privileged identity is a social-engineering target).
+  That account also still holds `roles/owner` on the project, so these grants
+  were already implied. OPEN: drop owner now that every integration is wired.
 - Lightning sync schemas `hightouch_audit` and `hightouch_planner` exist in
   BigQuery. The Hightouch UI shows these as shell commands, but they are SQL:
   run them in the BigQuery console or via `bq query --use_legacy_sql=false`.
@@ -89,11 +90,10 @@ Models: `mart_referral_scoring` (98 rows, key `company`), `fct_funnel`
 
 Syncs, both enabled on a 1 hour interval:
 
-- HUBSPOT `15546905`: upsert into Companies, match `company` to `name`,
+- HUBSPOT sync (id in `.env`): upsert into Companies, match `company` to `name`,
   maps `referral_score` and `open_application_count`. Verified against the
   HubSpot API: 98 companies carry a real score, 0 failed.
-- SHEET `15547600`: mode `mirror` into "NerdJoy Pipeline - Warm Intro
-  Targets". Verified by reading the sheet: 98 data rows plus header
+- SHEET sync (id in `.env`): mode `mirror` into the warm-intro targets sheet. Verified by reading the sheet: 98 data rows plus header
   (`company`, `open_application_count`, `latest_discovered_date`,
   `referral_score`).
 
@@ -111,12 +111,12 @@ Deviations from the plan, both accepted:
 
 - The plan specifies sync mode `overwrite`; the sheet sync uses `mirror`.
   Mirror deletes rows that leave the model, which self-cleans stale targets.
-- A third destination exists, `Google Sheets (Service Account)` id 169318,
-  with no sync attached. Safe to delete.
+- A third destination existed, `Google Sheets (Service Account)`, with no sync
+  attached. Deleted.
 
 Reading the sheet from code requires two things that are easy to miss: the
 Google Sheets API enabled on the project, and the sheet shared with the
-service account address above as Viewer. Hightouch itself does not need
+pipeline service account as Viewer. Hightouch itself does not need
 either, since it writes with its own Google authorization.
 
 `.env` keys: `HIGHTOUCH_API_KEY`, `HIGHTOUCH_SYNC_ID_HUBSPOT`,
@@ -129,15 +129,13 @@ read back from the HubSpot API, and 98 data rows read back from the sheet.
 That is stronger evidence than a screenshot, since it was re-derived from the
 live services rather than photographed.
 
-The unused `Google Sheets (Service Account)` destination id 169318 was deleted.
-
 ## Fivetran Postgres connector - DONE 2026-09-21
 
-Connection `supabase_postgres`, group `unabashed_bales`, destination
+Connection `supabase_postgres`, in the Fivetran group named in `.env`, destination
 `Warehouse` (BigQuery). Verified: successful historical sync, 460 loaded
 rows, 25 seconds, confirmed independently from BigQuery.
 
-Landed at `gtm-job-search-engine.supabase_postgres_public.applications`.
+Landed at the Fivetran-named dataset `<project>.supabase_postgres_public.applications`.
 Fivetran names the dataset from the connection name plus source schema and
 ignores whatever dataset you pre-create, so `nerdjoy_pipeline_raw` exists but
 is unused. `sources.yml` points at the real name.
@@ -198,7 +196,7 @@ Closes the loop. Hightouch writes scored companies into HubSpot; Fivetran
 brings HubSpot's own view back so the warehouse can see CRM state it does not
 itself produce.
 
-Landed at `gtm-job-search-engine.hubspot.company`, 220 rows.
+Landed at `<project>.hubspot.company`, 220 rows.
 `company_property_history` (8,997 rows) syncs automatically alongside it and
 is not used.
 

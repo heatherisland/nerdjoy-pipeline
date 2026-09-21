@@ -164,7 +164,7 @@ def main(argv: list[str] | None = None) -> int:
         "--targets",
         default=os.environ.get(
             "TARGET_COMPANIES_PATH",
-            "/Users/heatherbarry/claude-linkedin-assistant/resumes/target_companies.md",
+            "../claude-linkedin-assistant/resumes/target_companies.md",
         ),
     )
     args = parser.parse_args(argv)
