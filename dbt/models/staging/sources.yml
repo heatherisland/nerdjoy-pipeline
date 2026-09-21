@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: fivetran_supabase
+    description: >
+      Fivetran landing zone for the Supabase Postgres connector. Fivetran owns
+      these tables and rewrites them on every sync; nothing here is edited by
+      hand. The dataset name is Fivetran's own convention, derived from the
+      connection name plus the source schema.
+    database: gtm-job-search-engine
+    schema: supabase_postgres_public
+    tables:
+      - name: applications
+        description: >
+          One row per application, replicated from public.applications. Sync
+          mode is soft delete, so removed source rows persist here with
+          _fivetran_deleted = true and must be filtered downstream.
+        columns:
+          - name: application_key
+            description: SHA-256 of 'company|role'.
+            tests:
+              - not_null
+          - name: _fivetran_deleted
+            description: True once the row is gone from the source.
+          - name: _fivetran_synced
+            description: When Fivetran last wrote this row.

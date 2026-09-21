@@ -1,17 +1,21 @@
--- Source swaps to the Fivetran raw table in Task 12; the contract below is
+-- Source is the Fivetran-replicated table in BigQuery. The contract below is
 -- what every downstream model depends on, so it must not change.
 --
 -- The tracker is keyed on (company, role) but does not enforce that pair as
--- unique: 466 source rows collapse to 460 distinct application_keys. Six
--- (company, role) pairs are entered twice, and one of those six carries
--- genuinely conflicting statuses ('Applied' vs 'Phone Screen'). The schema
--- contract requires application_key to be unique, so this model resolves the
--- collisions deterministically instead of letting row order decide: keep the
+-- unique: 466 tracker rows collapse to 460 distinct application_keys, six
+-- (company, role) pairs having been entered twice. That collapse now happens
+-- upstream in Postgres, so this source already arrives with 460 distinct keys
+-- and the dedupe below is a safety net rather than an active reduction. It
+-- stays because the schema contract requires application_key to be unique and
+-- because a future source change must not silently break that: keep the
 -- most-advanced row per key by funnel position, then the earliest discovery
 -- date, then the latest applied date. Nothing here drops a distinct
 -- application; only repeated entries of the same company and role collapse.
 with source as (
-    select * from {{ ref('applications_seed') }}
+    -- Soft delete mode keeps removed source rows with _fivetran_deleted = true.
+    -- They are excluded here so a deleted application never reaches a mart.
+    select * from {{ source('fivetran_supabase', 'applications') }}
+    where not coalesce(_fivetran_deleted, false)
 ),
 
 deduplicated as (
