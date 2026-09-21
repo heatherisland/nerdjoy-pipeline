@@ -76,3 +76,83 @@ def test_main_returns_one_on_guard_violation(
     monkeypatch.setattr("nerdjoy_pipeline.metrics_extract.summary", leaky_summary)
     code = main(["--tracker", str(sample_tracker_path), "--output", str(tmp_path / "m.json")])
     assert code == 1
+
+
+def test_payload_from_bigquery_rows_matches_the_tracker_shape():
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    rows = [
+        {"metric_name": "applications_total", "metric_value": 467},
+        {"metric_name": "companies_total", "metric_value": 379},
+        {"metric_name": "funnel_applied", "metric_value": 238},
+        {"metric_name": "funnel_to_apply", "metric_value": 199},
+        {"metric_name": "referrals_needed", "metric_value": 124},
+        {"metric_name": "referrals_got", "metric_value": 2},
+        {"metric_name": "referral_conversion_pct", "metric_value": 1.6},
+    ]
+    payload = payload_from_bigquery_rows(rows)
+    assert payload["totals"]["applications"] == 467
+    assert payload["totals"]["companies"] == 379
+    assert payload["funnel"]["Applied"] == 238
+    assert payload["funnel"]["To Apply"] == 199
+    assert payload["referrals"]["needed"] == 124
+    assert payload["referrals"]["conversion_pct"] == 1.6
+
+
+def test_bigquery_payload_has_no_names():
+    import json
+
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    rows = [
+        {"metric_name": "applications_total", "metric_value": 1},
+        {"metric_name": "companies_total", "metric_value": 1},
+    ]
+    text = json.dumps(payload_from_bigquery_rows(rows))
+    assert "hollowpine" not in text.lower()
+
+
+def test_unknown_metric_names_are_ignored():
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    rows = [
+        {"metric_name": "applications_total", "metric_value": 5},
+        {"metric_name": "companies_total", "metric_value": 5},
+        {"metric_name": "some_future_metric", "metric_value": 9},
+    ]
+    payload = payload_from_bigquery_rows(rows)
+    assert payload["totals"]["applications"] == 5
+    assert "some_future_metric" not in str(payload["funnel"])
+
+
+def test_crm_metrics_reach_the_payload_with_their_denominator():
+    """The CRM loop only earns its place on the diagram if it reaches the page.
+
+    coverage_pct must travel with opportunity_pct: the rate is over known
+    companies only, and publishing it alone would imply it describes them all.
+    """
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    rows = [
+        {"metric_name": "applications_total", "metric_value": 460},
+        {"metric_name": "companies_total", "metric_value": 378},
+        {"metric_name": "crm_known_companies", "metric_value": 128},
+        {"metric_name": "crm_coverage_pct", "metric_value": 33.9},
+        {"metric_name": "crm_opportunity_pct", "metric_value": 16.4},
+    ]
+    payload = payload_from_bigquery_rows(rows)
+    assert payload["crm"]["known_companies"] == 128
+    assert payload["crm"]["coverage_pct"] == 33.9
+    assert payload["crm"]["opportunity_pct"] == 16.4
+
+
+def test_crm_block_is_absent_when_the_mart_has_no_crm_metrics():
+    """The tracker source has no CRM data, so the block must not appear empty."""
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    rows = [
+        {"metric_name": "applications_total", "metric_value": 5},
+        {"metric_name": "companies_total", "metric_value": 5},
+    ]
+    payload = payload_from_bigquery_rows(rows)
+    assert "crm" not in payload

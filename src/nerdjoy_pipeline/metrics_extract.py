@@ -13,7 +13,7 @@ from datetime import date
 from pathlib import Path
 
 from nerdjoy_pipeline.guard import GuardViolation, build_denylist, guard_text
-from nerdjoy_pipeline.metrics import summary
+from nerdjoy_pipeline.metrics import FUNNEL_ORDER, summary
 from nerdjoy_pipeline.tracker import read_tracker
 
 DEFAULT_TRACKER = os.environ.get(
@@ -22,9 +22,87 @@ DEFAULT_TRACKER = os.environ.get(
 DEFAULT_OUTPUT = "metrics.json"
 
 
-def export_metrics(tracker_path: str | Path, output_path: str | Path) -> dict:
-    apps = read_tracker(tracker_path)
-    payload = {"generated_at": date.today().isoformat(), **summary(apps)}
+_FUNNEL_PREFIX = "funnel_"
+
+# Keys published under "crm", mapped from their mart metric names. The
+# opportunity rate is computed over known companies only, so coverage travels
+# with it: publishing the rate alone would imply it describes every company.
+_CRM_METRICS = {
+    "crm_known_companies": ("known_companies", int),
+    "crm_coverage_pct": ("coverage_pct", float),
+    "crm_opportunity_pct": ("opportunity_pct", float),
+}
+
+
+def _status_from_metric(metric_name: str) -> str | None:
+    """Map funnel_to_apply back to the canonical "To Apply"."""
+    if not metric_name.startswith(_FUNNEL_PREFIX):
+        return None
+    slug = metric_name[len(_FUNNEL_PREFIX) :]
+    for status in FUNNEL_ORDER:
+        if status.lower().replace(" ", "_") == slug:
+            return status
+    return None
+
+
+def payload_from_bigquery_rows(rows: list[dict]) -> dict:
+    """Rebuild the metrics.json shape from mart_public_metrics rows."""
+    values = {r["metric_name"]: r["metric_value"] for r in rows}
+
+    funnel = {status: 0 for status in FUNNEL_ORDER}
+    for name, value in values.items():
+        status = _status_from_metric(name)
+        if status is not None:
+            funnel[status] = int(value)
+
+    payload = {
+        "totals": {
+            "applications": int(values.get("applications_total", 0)),
+            "companies": int(values.get("companies_total", 0)),
+        },
+        "funnel": funnel,
+        "referrals": {
+            "needed": int(values.get("referrals_needed", 0)),
+            "outreach_sent": int(values.get("referrals_outreach_sent", 0)),
+            "got_referral": int(values.get("referrals_got", 0)),
+            "conversion_pct": float(values.get("referral_conversion_pct", 0.0)),
+        },
+        "channels": {},
+        "activity": [],
+    }
+
+    # Omitted entirely rather than zero-filled: the tracker source has no CRM
+    # data, and a block of zeroes would read as "HubSpot knows nothing" rather
+    # than "this export did not consult HubSpot".
+    crm = {
+        key: cast(values[name])
+        for name, (key, cast) in _CRM_METRICS.items()
+        if name in values
+    }
+    if crm:
+        payload["crm"] = crm
+
+    return payload
+
+
+def _fetch_bigquery_rows() -> list[dict]:
+    from google.cloud import bigquery
+
+    project = os.environ["BIGQUERY_PROJECT"]
+    dataset = os.environ.get("BIGQUERY_DATASET", "nerdjoy_pipeline")
+    client = bigquery.Client(project=project)
+    query = f"SELECT metric_name, metric_value FROM `{project}.{dataset}.mart_public_metrics`"
+    return [dict(row) for row in client.query(query).result()]
+
+
+def export_metrics(
+    tracker_path: str | Path, output_path: str | Path, source: str = "tracker"
+) -> dict:
+    if source == "bigquery":
+        body = payload_from_bigquery_rows(_fetch_bigquery_rows())
+    else:
+        body = summary(read_tracker(tracker_path))
+    payload = {"generated_at": date.today().isoformat(), **body}
 
     serialized = json.dumps(payload, indent=2, sort_keys=False)
     denylist = build_denylist(tracker_path)
@@ -40,10 +118,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export anonymized metrics.json")
     parser.add_argument("--tracker", default=DEFAULT_TRACKER)
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
+    parser.add_argument("--source", choices=["tracker", "bigquery"], default="tracker")
     args = parser.parse_args(argv)
 
     try:
-        payload = export_metrics(args.tracker, args.output)
+        payload = export_metrics(args.tracker, args.output, source=args.source)
     except GuardViolation as exc:
         print(f"GUARD FAILED: {exc}", file=sys.stderr)
         return 1
