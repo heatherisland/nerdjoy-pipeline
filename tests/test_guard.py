@@ -74,21 +74,21 @@ def test_generic_words_pass_the_guard_in_prose(sample_tracker_path: Path):
 
 
 def test_full_company_name_still_blocked_despite_generic_word(tmp_path: Path):
-    # Dropping the token "data" must NOT unprotect "Simon Data" itself.
+    # Dropping the token "data" must NOT unprotect "Northwind Data" itself.
     csv_path = tmp_path / "t.csv"
     csv_path.write_text(
         "Priority,Company,Role,Location,Type,Salary,Status,Applied Date,Next Action,"
         "URL,Notes,Discovered Date,Referral Needed,Referral Status,Referral Deadline,"
         "Apply Via\n"
-        "HIGH,Simon Data,Analyst,Remote,Full-time,,Applied,2026-09-01,,http://x,,"
+        "HIGH,Northwind Data,Analyst,Remote,Full-time,,Applied,2026-09-01,,http://x,,"
         "2026-09-01,NO,Not Needed,,Greenhouse\n",
         encoding="utf-8",
     )
     denylist = build_denylist(csv_path)
     assert "data" not in denylist
-    assert "simon" in denylist
+    assert "northwind" in denylist
     with pytest.raises(GuardViolation):
-        check_no_denylisted_terms("We spoke with Simon Data.", denylist)
+        check_no_denylisted_terms("We spoke with Northwind Data.", denylist)
 
 
 def test_gtm_vocabulary_allowed_but_company_still_protected():
@@ -156,10 +156,10 @@ def test_guard_text_reports_the_label(sample_tracker_path: Path):
 
 
 def test_email_address_raises():
-    # The live tracker stores "Email (petra@shovels.ai)" in Apply Via, and
+    # The live tracker stores a real address "Email (dana@northwind.invalid)" in Apply Via, and
     # Apply Via values reach metrics.json through channel_counts.
     with pytest.raises(GuardViolation, match="email"):
-        check_no_contact_details("Email (petra@shovels.ai)")
+        check_no_contact_details("Email (dana@northwind.invalid)")
 
 
 def test_bare_email_raises():
@@ -184,7 +184,7 @@ def test_dates_and_versions_are_not_phone_numbers():
 def test_guard_text_runs_the_contact_check(sample_tracker_path: Path):
     denylist = build_denylist(sample_tracker_path)
     with pytest.raises(GuardViolation, match="email"):
-        guard_text("Email (petra@shovels.ai)", denylist, label="metrics.json")
+        guard_text("Email (dana@northwind.invalid)", denylist, label="metrics.json")
 
 
 def test_parenthetical_qualifier_words_are_not_indexed(tmp_path):

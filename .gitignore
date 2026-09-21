@@ -51,3 +51,6 @@ venv/
 .idea/
 *.swp
 *.egg-info/
+
+# Real agency names. Only the fictional example is committed.
+config/agency_channels.txt

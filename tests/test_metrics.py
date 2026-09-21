@@ -67,7 +67,7 @@ def test_channel_counts_are_descending(sample_tracker_path: Path):
 
 
 def test_channel_labels_never_carry_contact_details():
-    # The live tracker has "Email (petra@shovels.ai)" in Apply Via, and channel
+    # The live tracker has a real address "Email (dana@northwind.invalid)" in Apply Via, and channel
     # labels are published verbatim in metrics.json. Bucket anything with an
     # address in it rather than letting the guard fail the whole build.
     from nerdjoy_pipeline.tracker import Application
@@ -80,7 +80,7 @@ def test_channel_labels_never_carry_contact_details():
             priority="HIGH",
             referral_needed=False,
             referral_status="Not Needed",
-            apply_via="Email (petra@shovels.ai)",
+            apply_via="Email (dana@northwind.invalid)",
             applied_date=None,
             discovered_date=None,
         )
@@ -128,12 +128,15 @@ def _chan(apply_via: str) -> Application:
 def test_agency_channels_are_generalized():
     """Staffing agencies are employers too; publishing them leaks company names."""
     apps = [
-        _chan("Aquent"),
-        _chan("Robert Half"),
-        _chan("Onward Search"),
+        _chan("Northwind Staffing"),
+        _chan("Hollowpine Talent"),
+        _chan("Ironvale Recruiting"),
         _chan("LinkedIn"),
     ]
-    assert channel_counts(apps) == {"Staffing Agency": 3, "LinkedIn": 1}
+    agencies = frozenset(
+        {"northwind staffing", "hollowpine talent", "ironvale recruiting"}
+    )
+    assert channel_counts(apps, agencies) == {"Staffing Agency": 3, "LinkedIn": 1}
 
 
 def test_non_agency_channels_are_untouched():

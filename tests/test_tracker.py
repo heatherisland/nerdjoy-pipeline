@@ -70,8 +70,8 @@ def test_referral_needed_yes_parses_true(sample_tracker_path: Path):
         ("", "Unknown"),
         ("   ", "Unknown"),
         # The live tracker embeds a real address in this column.
-        ("Email (petra@shovels.ai)", "Email"),
-        ("petra@shovels.ai", "Email"),
+        ("Email (dana@northwind.invalid)", "Email"),
+        ("dana@northwind.invalid", "Email"),
     ],
 )
 def test_normalize_apply_via(raw: str, expected: str):
@@ -79,7 +79,7 @@ def test_normalize_apply_via(raw: str, expected: str):
 
 
 def test_normalize_apply_via_never_returns_an_address():
-    for raw in ("Email (petra@shovels.ai)", "someone@example.com", "Referral (a@b.co)"):
+    for raw in ("Email (dana@northwind.invalid)", "someone@example.com", "Referral (a@b.co)"):
         assert "@" not in normalize_apply_via(raw)
 
 

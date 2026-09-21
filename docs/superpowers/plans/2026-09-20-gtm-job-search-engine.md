@@ -26,7 +26,7 @@ Every task's requirements implicitly include this section.
 
 - **No em-dashes (`—`) in any outgoing copy.** Applies to: the dashboard (all rendered strings), `metrics.json` string values, the README, and the LinkedIn reveal post. Enforced by an automated check (Task 3), not by eyeballing. Internal specs, plans, code comments, and commit messages are not outgoing copy.
 - **No PII in anything public or committed.** No company names, person names, emails, phone numbers, or URLs in `metrics.json`, the dashboard, or the public repo. Aggregates and generalized descriptors only (e.g. "Series C, ~250 employees, martech"). Enforced by two checks in Task 3: a deny list built from the tracker's `Company` column, and a pattern check for emails and phone numbers that catches PII in columns the deny list never reads.
-- **PII hides outside the Company column.** The live tracker stores a real email inside `Apply Via` (`Email (petra@shovels.ai)`), and `Apply Via` values are published as channel labels. Never assume a column is name-free just because it is not the name column.
+- **PII hides outside the Company column.** The live tracker stores a real email inside `Apply Via` (`Email (dana@northwind.invalid)`), and `Apply Via` values are published as channel labels. Never assume a column is name-free just because it is not the name column.
 - **`job_tracker.csv` is read-only to the pipeline.** No build step may write, move, or rewrite it. Every read opens the file in `"r"` mode. Enforced by a test (Task 2).
 - **Claude never enters credentials.** Every secret is read from an environment variable or an untracked `.env`. No task instructs an agent to open a login page, paste a token, or complete OAuth. Auth steps are written as instructions **for Heather** and marked `HUMAN STEP`.
 - **Never commit** resume content, search profile, contacts, HubSpot exports, tracker data, or `.env`. Enforced by `.gitignore` (Task 1) plus the guard (Task 3).
@@ -381,8 +381,8 @@ def test_referral_needed_yes_parses_true(sample_tracker_path: Path):
         ("", "Unknown"),
         ("   ", "Unknown"),
         # The live tracker embeds a real address in this column.
-        ("Email (petra@shovels.ai)", "Email"),
-        ("petra@shovels.ai", "Email"),
+        ("Email (dana@northwind.invalid)", "Email"),
+        ("dana@northwind.invalid", "Email"),
     ],
 )
 def test_normalize_apply_via(raw: str, expected: str):
@@ -390,7 +390,7 @@ def test_normalize_apply_via(raw: str, expected: str):
 
 
 def test_normalize_apply_via_never_returns_an_address():
-    for raw in ("Email (petra@shovels.ai)", "someone@example.com", "Referral (a@b.co)"):
+    for raw in ("Email (dana@northwind.invalid)", "someone@example.com", "Referral (a@b.co)"):
         assert "@" not in normalize_apply_via(raw)
 
 
@@ -500,7 +500,7 @@ def normalize_apply_via(raw: str) -> str:
     """Collapse variants and strip any contact details out of the label.
 
     Channel labels are published verbatim in metrics.json, and the live
-    tracker stores "Email (petra@shovels.ai)" here. Reduce anything holding
+    tracker stores "Email (dana@northwind.invalid)" here. Reduce anything holding
     an address to its bare channel name so no PII ever reaches the label.
     """
     raw = (raw or "").strip()
@@ -598,7 +598,7 @@ The single safety gate. Both the metrics export (Task 5) and the dashboard build
   - `check_no_contact_details(text: str, *, label: str = "content") -> None`
   - `guard_text(text: str, denylist: set[str], *, label: str = "content") -> None`
 
-**Why the contact-details check exists:** the deny-list is built from the `Company` column, so it cannot catch PII hiding in other columns. The live tracker has a real email address sitting inside `Apply Via` (`Email (petra@shovels.ai)`), and `channel_counts` surfaces `Apply Via` values straight into `metrics.json`. A deny-list alone would ship that address. This check is pattern-based rather than value-based, so it catches emails and phone numbers the tracker has not seen yet.
+**Why the contact-details check exists:** the deny-list is built from the `Company` column, so it cannot catch PII hiding in other columns. The live tracker has a real email address sitting inside `Apply Via` (`Email (dana@northwind.invalid)`), and `channel_counts` surfaces `Apply Via` values straight into `metrics.json`. A deny-list alone would ship that address. This check is pattern-based rather than value-based, so it catches emails and phone numbers the tracker has not seen yet.
 
 - [x] **Step 1: Write the failing tests**
 
@@ -681,13 +681,13 @@ def test_generic_words_pass_the_guard_in_prose(sample_tracker_path: Path):
 
 
 def test_full_company_name_still_blocked_despite_generic_word(tmp_path: Path):
-    # Dropping the token "data" must NOT unprotect "Simon Data" itself.
+    # Dropping the token "data" must NOT unprotect "Northwind Data" itself.
     csv_path = tmp_path / "t.csv"
     csv_path.write_text(
         "Priority,Company,Role,Location,Type,Salary,Status,Applied Date,Next Action,"
         "URL,Notes,Discovered Date,Referral Needed,Referral Status,Referral Deadline,"
         "Apply Via\n"
-        "HIGH,Simon Data,Analyst,Remote,Full-time,,Applied,2026-09-01,,http://x,,"
+        "HIGH,Northwind Data,Analyst,Remote,Full-time,,Applied,2026-09-01,,http://x,,"
         "2026-09-01,NO,Not Needed,,Greenhouse\n",
         encoding="utf-8",
     )
@@ -695,7 +695,7 @@ def test_full_company_name_still_blocked_despite_generic_word(tmp_path: Path):
     assert "data" not in denylist
     assert "simon" in denylist
     with pytest.raises(GuardViolation):
-        check_no_denylisted_terms("We spoke with Simon Data.", denylist)
+        check_no_denylisted_terms("We spoke with Northwind Data.", denylist)
 
 
 def test_gtm_vocabulary_allowed_but_company_still_protected():
@@ -763,10 +763,10 @@ def test_guard_text_reports_the_label(sample_tracker_path: Path):
 
 
 def test_email_address_raises():
-    # The live tracker stores "Email (petra@shovels.ai)" in Apply Via, and
+    # The live tracker stores "Email (dana@northwind.invalid)" in Apply Via, and
     # Apply Via values reach metrics.json through channel_counts.
     with pytest.raises(GuardViolation, match="email"):
-        check_no_contact_details("Email (petra@shovels.ai)")
+        check_no_contact_details("Email (dana@northwind.invalid)")
 
 
 def test_bare_email_raises():
@@ -791,7 +791,7 @@ def test_dates_and_versions_are_not_phone_numbers():
 def test_guard_text_runs_the_contact_check(sample_tracker_path: Path):
     denylist = build_denylist(sample_tracker_path)
     with pytest.raises(GuardViolation, match="email"):
-        guard_text("Email (petra@shovels.ai)", denylist, label="metrics.json")
+        guard_text("Email (dana@northwind.invalid)", denylist, label="metrics.json")
 ```
 
 - [x] **Step 2: Run the tests to verify they fail**
@@ -831,7 +831,7 @@ EM_DASH = "—"
 _MIN_TERM_LENGTH = 3
 
 # Corporate filler that appears INSIDE company names but is ordinary English on
-# its own. Splitting "Simon Data" or "GTX Solutions (a CourtAvenue Company)" into
+# its own. Splitting "Northwind Data" or "GTX Solutions (a CourtAvenue Company)" into
 # words otherwise puts "data", "solutions" and "company" on the deny list, and a
 # GTM data-stack README cannot be written without them. The full multi-word name
 # stays on the deny list, so the real company is still blocked; only the useless
@@ -849,8 +849,8 @@ _GENERIC_NAME_TOKENS = frozenset({
     "engineering", "flow",
     # Fragments of multi-word tracker names that are also ordinary words the
     # public artifacts need. The full name stays on the deny list in every case:
-    # "Tiger Analytics", "Aria Systems", "Avenue Code", "Apartment List",
-    # "Main Digital", "Ours Privacy", "Onward Search", "Revenue.io".
+    # "Ironvale Analytics", "Borealis Systems", "Grayharbor Code", "Junipergate List",
+    # "Cindergrid Digital", "Everwake Privacy", "Ironvale Recruiting", "Revenue.io".
     "analytics", "aria", "code", "list", "main", "privacy", "search", "revenue",
 })
 
@@ -896,7 +896,7 @@ def build_denylist(tracker_path: str | Path) -> set[str]:
     Includes both the full name and its individually distinctive words so a
     partial mention ("Hollowpine" out of "Hollowpine Systems") still trips.
     Generic corporate filler is excluded as a WORD only: the full name it came
-    from stays on the list, so "Simon Data" is still blocked while the bare word
+    from stays on the list, so "Northwind Data" is still blocked while the bare word
     "data" stays usable in ordinary prose.
     """
     terms: set[str] = set()
@@ -994,8 +994,8 @@ dl = build_denylist('/Users/heatherbarry/claude-linkedin-assistant/job_tracker.c
 print('denylist terms:', len(dl))
 
 for probe, why in [
-    ('We spoke with Instacart about the role.', 'company name'),
-    ('Email (petra@shovels.ai)', 'embedded email'),
+    ('We spoke with Northwind Data about the role.', 'company name'),
+    ('Email (dana@northwind.invalid)', 'embedded email'),
 ]:
     try:
         guard_text(probe, dl, label='smoke')
@@ -1113,7 +1113,7 @@ def test_channel_counts_are_descending(sample_tracker_path: Path):
 
 
 def test_channel_labels_never_carry_contact_details():
-    # The live tracker has "Email (petra@shovels.ai)" in Apply Via, and channel
+    # The live tracker has "Email (dana@northwind.invalid)" in Apply Via, and channel
     # labels are published verbatim in metrics.json. Bucket anything with an
     # address in it rather than letting the guard fail the whole build.
     from nerdjoy_pipeline.tracker import Application
@@ -1126,7 +1126,7 @@ def test_channel_labels_never_carry_contact_details():
             priority="HIGH",
             referral_needed=False,
             referral_status="Not Needed",
-            apply_via="Email (petra@shovels.ai)",
+            apply_via="Email (dana@northwind.invalid)",
             applied_date=None,
             discovered_date=None,
         )
@@ -1471,8 +1471,8 @@ Expected: 70 passed
 > **RESOLVED (2026-09-20).** Step 5 initially failed the guard. Three separate
 > name collisions were found and fixed, none by weakening the deny list:
 >
-> 1. **Agency channels leaked real companies.** `Aquent`, `Robert Half`,
->    `24 Seven`, `Braintrust`, `Creative Circle`, `Onward Search` are staffing
+> 1. **Agency channels leaked real companies.** `Northwind Staffing`, `Hollowpine Talent`,
+>    `Grayharbor Seven`, `Delta Loop Talent`, `Foxglove Creative`, `Ironvale Recruiting` are staffing
 >    agencies that are both channels and employers. Heather chose bucketing:
 >    `generalize_channel()` in `metrics.py` collapses them to `Staffing Agency`
 >    (26 apps), preserving the funnel total.
@@ -1779,7 +1779,7 @@ Parses `resumes/target_companies.md` (markdown tables, ~83 lines across 5 domain
   - `upsert_companies(companies: list[TargetCompany], client) -> int` where `client` exposes `post(url: str, json: dict) -> dict`
   - `main(argv: list[str] | None = None) -> int`
 
-- [ ] **Step 1: Write `tests/fixtures/sample_targets.md`**
+- [x] **Step 1: Write `tests/fixtures/sample_targets.md`**
 
 Mirrors the real file's structure with fictional companies.
 
@@ -1800,7 +1800,7 @@ Mirrors the real file's structure with fictional companies.
 | Cindergrid | Snowflake-native CDP | Series D, ~150 | Ashby | cindergrid | https://example.invalid/cindergrid |
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `tests/test_hubspot_loader.py`:
 
@@ -1901,12 +1901,12 @@ def test_missing_file_raises():
         parse_target_companies(Path("/nonexistent/targets.md"))
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `pytest tests/test_hubspot_loader.py -v`
 Expected: collection error, `ModuleNotFoundError: No module named 'nerdjoy_pipeline.hubspot_loader'`
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 `src/nerdjoy_pipeline/hubspot_loader.py`:
 
@@ -2045,12 +2045,12 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `pytest tests/test_hubspot_loader.py -v`
 Expected: 9 passed
 
-- [ ] **Step 6: Verify the parser against the real target file (read-only)**
+- [x] **Step 6: Verify the parser against the real target file (read-only)**
 
 ```bash
 python3 -c "
@@ -2066,7 +2066,7 @@ print('parser ok')
 
 Expected: a count above 30, the domain list, then `parser ok`
 
-- [ ] **Step 7: HUMAN STEP — Heather creates the HubSpot private app**
+- [x] **Step 7: HUMAN STEP — Heather creates the HubSpot private app**
 
 Append to `docs/runbook.md`. **Claude does not perform this step.**
 
@@ -2078,7 +2078,7 @@ Append to `docs/runbook.md`. **Claude does not perform this step.**
 > 6. Run: `source .venv/bin/activate && python3 -m nerdjoy_pipeline.hubspot_loader`
 > 7. Confirm the companies appear under CRM > Companies.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/nerdjoy_pipeline/hubspot_loader.py tests/test_hubspot_loader.py tests/fixtures/sample_targets.md docs/runbook.md
@@ -3679,7 +3679,7 @@ git ls-files
 Read every listed file. Confirm none contains a real company name, contact, resume content, credential, or tracker row. `dbt/seeds/applications_seed.csv`, `metrics.json`, `.env`, and `docs/proof/` must **not** appear. If any does, remove it from the index and add it to `.gitignore` before the first push.
 
 ```bash
-git ls-files | xargs grep -l -i -E "instacart|hubspot_token|BEGIN PRIVATE KEY" || echo "clean"
+git ls-files | xargs grep -l -i -E "northwind data|hubspot_token|BEGIN PRIVATE KEY" || echo "clean"
 ```
 
 Expected: `clean` (HubSpot as a *tool name* in the README is fine; a *token value* is not).

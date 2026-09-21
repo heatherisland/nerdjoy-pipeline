@@ -1,0 +1,10 @@
+# Template. Copy to config/agency_channels.txt and fill in the staffing
+# agency names as they appear in your tracker's Apply Via column, one per
+# line, case-insensitive. Blank lines and # comments are ignored.
+#
+# The real file is gitignored: these are real company names and publishing
+# them would defeat the generalization they exist to feed.
+#
+# Example entries (fictional):
+northwind staffing
+hollowpine talent

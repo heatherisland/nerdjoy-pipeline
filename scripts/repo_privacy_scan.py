@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Fail if any real company name from the tracker is in a git-tracked file.
+
+The guard in nerdjoy_pipeline.guard protects OUTGOING COPY: metrics.json, the
+dashboard, the post. Nothing protected the repository itself, and real company
+names reached committed source comments, test fixtures and the plan before this
+existed. The repo is public, so a name in a code comment is as published as a
+name on the dashboard.
+
+Run before every push:  python scripts/repo_privacy_scan.py
+Exit 0 = clean, exit 1 = names found (printed with file and term).
+"""
+from __future__ import annotations
+
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "src"))
+
+from nerdjoy_pipeline.guard import VENDOR_TOOL_NAMES  # noqa: E402
+from nerdjoy_pipeline.tracker import read_tracker  # noqa: E402
+
+DEFAULT_TRACKER = "/Users/heatherbarry/claude-linkedin-assistant/job_tracker.csv"
+
+# Tracker companies whose names are also ordinary English that this repo must be
+# able to write. Same reasoning as VENDOR_TOOL_NAMES in the guard: the company
+# IS the word, so banning the string outright would make the docs unwritable,
+# and dropping it from the tracker-derived list is the only alternative. Each
+# was checked by hand: every occurrence in this repo is the ordinary word.
+#   "remote"    - the Location and Type column value on nearly every row.
+#   "canonical" - the adjective, as in "canonical status".
+#   "ready"     - the adjective, as in "drafted and ready".
+ORDINARY_WORD_COMPANIES = frozenset({"remote", "canonical", "ready"})
+
+ALLOWED = VENDOR_TOOL_NAMES | ORDINARY_WORD_COMPANIES
+
+
+def tracked_files() -> list[str]:
+    out = subprocess.run(
+        ["git", "ls-files"], capture_output=True, text=True, cwd=REPO, check=True
+    )
+    return out.stdout.split()
+
+
+def main() -> int:
+    tracker = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_TRACKER
+    if not Path(tracker).exists():
+        print(f"SKIP: tracker not found at {tracker}")
+        return 0
+
+    names = {
+        a.company.strip().lower()
+        for a in read_tracker(tracker)
+        if len(a.company.strip()) > 3
+    } - ALLOWED
+
+    files = tracked_files()
+    hits: list[tuple[str, str]] = []
+    for rel in files:
+        path = REPO / rel
+        try:
+            low = path.read_text(encoding="utf-8", errors="ignore").lower()
+        except (OSError, UnicodeDecodeError):
+            continue
+        hits.extend((rel, n) for n in names if re.search(rf"\b{re.escape(n)}\b", low))
+
+    if hits:
+        print(f"FAIL: {len(hits)} real company name(s) in git-tracked files")
+        for rel, name in sorted(hits):
+            print(f"   {rel}: {name!r}")
+        print("\nReplace with fictional names, or move the data to a gitignored file.")
+        return 1
+
+    print(f"PASS: no real company names in {len(files)} tracked files")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -25,7 +25,7 @@ EM_DASH = "—"
 _MIN_TERM_LENGTH = 3
 
 # Corporate filler that appears INSIDE company names but is ordinary English on
-# its own. Splitting "Simon Data" or "GTX Solutions (a CourtAvenue Company)" into
+# its own. Splitting a name like "Northwind Data" or "Acme (a Hollowpine Company)"
 # words otherwise puts "data", "solutions" and "company" on the deny list, and a
 # GTM data-stack README cannot be written without them. The full multi-word name
 # stays on the deny list, so the real company is still blocked; only the useless
@@ -42,9 +42,10 @@ _GENERIC_NAME_TOKENS = frozenset({
     "studios", "enterprises", "ventures", "advisors", "brands", "collective",
     "engineering", "flow",
     # Fragments of multi-word tracker names that are also ordinary words the
-    # public artifacts need. The full name stays on the deny list in every case:
-    # "Tiger Analytics", "Aria Systems", "Avenue Code", "Apartment List",
-    # "Main Digital", "Ours Privacy", "Onward Search", "Revenue.io".
+    # public artifacts need. The full name always stays on the deny list, so the
+    # real company is still blocked; only the reusable fragment is dropped. The
+    # names themselves are deliberately not listed here: this file is committed,
+    # and naming them would leak exactly what the deny list protects.
     "analytics", "aria", "code", "list", "main", "privacy", "search", "revenue",
 })
 
@@ -90,7 +91,7 @@ def build_denylist(tracker_path: str | Path) -> set[str]:
     Includes both the full name and its individually distinctive words so a
     partial mention ("Hollowpine" out of "Hollowpine Systems") still trips.
     Generic corporate filler is excluded as a WORD only: the full name it came
-    from stays on the list, so "Simon Data" is still blocked while the bare word
+    from stays on the list, so "Northwind Data" is still blocked while the word
     "data" stays usable in ordinary prose.
     """
     terms: set[str] = set()

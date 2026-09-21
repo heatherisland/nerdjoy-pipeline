@@ -71,7 +71,8 @@ def normalize_apply_via(raw: str) -> str:
     """Collapse variants and strip any contact details out of the label.
 
     Channel labels are published verbatim in metrics.json, and the live
-    tracker stores "Email (petra@shovels.ai)" here. Reduce anything holding
+    tracker stores a value like "Email (person@example.com)" here, carrying a
+    real address. Reduce anything holding
     an address to its bare channel name so no PII ever reaches the label.
     """
     raw = (raw or "").strip()
