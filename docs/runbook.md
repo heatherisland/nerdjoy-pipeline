@@ -115,5 +115,11 @@ either, since it writes with its own Google authorization.
 `.env` keys: `HIGHTOUCH_API_KEY`, `HIGHTOUCH_SYNC_ID_HUBSPOT`,
 `HIGHTOUCH_SYNC_ID_SHEET`, `HIGHTOUCH_SHEET_ID`.
 
-Proof screenshots belong in `docs/proof/`, which is gitignored because they
-show real company names.
+Proof screenshots: SKIPPED at Heather's direction, 2026-09-21. `docs/proof/`
+stays gitignored in case any are captured later. Proof for the honesty
+principle is instead the API verification recorded above: 98 scored companies
+read back from the HubSpot API, and 98 data rows read back from the sheet.
+That is stronger evidence than a screenshot, since it was re-derived from the
+live services rather than photographed.
+
+The unused `Google Sheets (Service Account)` destination id 169318 was deleted.
