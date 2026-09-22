@@ -47,6 +47,7 @@ mode `r`, and no code here writes to it.
 ## Layout
 
 ```
+docs/        project status, local setup, runbook
 dags/        Airflow DAG, the full task chain
 dbt/         staging models, funnel and scoring marts
 src/         tracker reader, loaders, metrics extraction, the privacy guard
@@ -55,6 +56,14 @@ scripts/     privacy scan, publication gate, seed generation
 tests/       118 tests
 docs/        runbook, including the steps a human performs
 ```
+
+## Documentation
+
+- `docs/PROJECT_STATUS.md` is the snapshot: what is built, what is live, what is
+  decided and what remains open. Start here when picking the project up.
+- `docs/LOCAL_SETUP.md` covers the gitignored files a fresh clone does not
+  get, and the refresh and publish sequence.
+- `docs/runbook.md` holds operational detail and the steps a human performs.
 
 ## Running it
 
