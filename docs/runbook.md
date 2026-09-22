@@ -102,10 +102,21 @@ that qualify for warm intro scoring. Blank is not failure.
 
 Corrected 2026-09-21: this line previously said "98 of the 131 HubSpot
 companies". HubSpot now holds 220 company records, 89 of them created at
-17:17 by the Hightouch sync itself, so the sync has been inserting rather
-than only updating. Those 220 rows carry only 209 distinct names plus 11
-null names, which means Hightouch is also creating duplicates on name
-variants. Worth cleaning up before the CRM count is quoted anywhere public.
+17:17 by the Hightouch sync itself.
+
+Corrected again 2026-09-22, prior correction was a misdiagnosis: "89 created
+by the sync" and "209 distinct names plus 11 null" were read as evidence of
+a broken upsert creating duplicate name variants. Investigated and
+independently re-verified: there are zero duplicate names in the table,
+exact or case/whitespace normalized. The Hightouch sync config is `mode:
+upsert` matching HubSpot `name` to the mart's `company`, not an insert-only
+mode. Of the 98 `mart_referral_scoring` companies, exactly 9 already existed
+in HubSpot from unrelated prior activity and were matched and updated in
+place (the specific 9 names are not repeated here per the deny-list rule
+below); the remaining 89 had no prior HubSpot record and were correctly
+inserted, all in the same sync run (hence the shared 17:17 timestamp). 9 + 89
+= 98, no residual. The 220 total minus 209 distinct plus 11 null accounts
+for every row exactly once with no collision. Nothing to clean up.
 
 Deviations from the plan, both accepted:
 
@@ -171,24 +182,22 @@ Sync mode is soft delete, so the raw table carries `_fivetran_deleted`,
 `statement_timeout` was 120s, below Fivetran's 300s floor. Fixed with
 `alter role postgres set statement_timeout = 0;` (verified in `rolconfig`).
 
-### Open: the conflicting-status row
+### CLOSED 2026-09-22: the conflicting-status row
 
-Swapping the source changed two published metrics: `funnel_applied` 234 ->
-235 and `funnel_phone_screen` 2 -> 1. Totals are unaffected at 460.
+Previously open: swapping the source changed two published metrics,
+`funnel_applied` 234 -> 235 and `funnel_phone_screen` 2 -> 1, caused by one
+(company, role) pair recorded as both 'Applied' and 'Phone Screen'. Postgres
+collapsed duplicates on `application_key` before Fivetran saw them, keeping
+whichever row loaded last, so the dbt funnel-position ranking never got to
+choose.
 
-Cause: the one (company, role) pair recorded as both 'Applied' and
-'Phone Screen'. Postgres collapses duplicates on `application_key` before
-Fivetran sees them, keeping whichever row loaded last, so the dbt
-funnel-position ranking never gets to choose. The dedupe in
-`stg_applications` still guarantees uniqueness but no longer decides which
-status wins.
-
-That makes `funnel_phone_screen` honestly describable as "whichever row
-Postgres loaded last", which is weaker than intended for a number headed to
-a public dashboard. Fix by correcting the row in `job_tracker.csv` and
-reloading. The alternative, adding `discovered_date` to `application_key` so
-all 466 rows survive, changes `applications_total` to 466 and touches
-Postgres, dbt and Hightouch.
+The tracker row was corrected at the source (in
+`../claude-linkedin-assistant/job_tracker.csv`, outside this repo). Reloaded
+and reverified end to end 2026-09-22: `pg_loader` upsert, Postgres 460 rows,
+manual Fivetran sync, BigQuery 460 rows, `dbt run` and `dbt test` both clean
+(9 models, 38 tests, 0 errors). `funnel_phone_screen` is back to 2, matching
+the pre-conflict baseline, and no longer load-order dependent: both rows now
+resolve to distinct, non-colliding statuses regardless of load order.
 
 ## Fivetran HubSpot connector - DONE 2026-09-21
 

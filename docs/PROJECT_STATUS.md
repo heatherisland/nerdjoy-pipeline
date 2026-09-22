@@ -107,6 +107,9 @@ either script. A green result from an unproven check is worthless.
 - **CRM coverage is 33.9 percent, 128 of 378.** Published together with the
   opportunity rate so the denominator is visible rather than implied. Reporting
   the opportunity rate alone would imply it describes the whole pipeline.
+- **HubSpot has 220 company rows but only 98 are pipeline-scored.** The other
+  122 (9 overlapping by name, 113 not) are unrelated CRM activity from other
+  flows. Not a defect: see open item 4 (closed 2026-09-22) in this file.
 - **Replication is query based, not CDC.** Logical replication cannot work: the
   Supabase session pooler is required for IPv4 but does not support the
   replication protocol, and the direct host is IPv6 only while Fivetran egresses
@@ -132,14 +135,24 @@ Ranked. Nothing here blocks the dashboard, which is live and correct.
    the live layer but does NOT vacuum tombstones. Clearing them needs a raw
    table drop or a connector delete-mode change, both destructive to the raw
    layer. Flagged, deliberately not acted on.
-4. **HubSpot holds duplicate company records.** 220 rows, 209 distinct names
-   plus 11 null names, 89 created by the Hightouch sync itself, so the sync has
-   been inserting rather than only updating. Clean this up before any CRM count
-   is quoted publicly.
-5. **One conflicting-status tracker row.** The same company and role recorded
-   as both `Applied` and `Phone Screen`. Postgres collapses duplicates before
-   dbt can rank them, so `funnel_phone_screen` is honestly "whichever row
-   Postgres loaded last". Fix by correcting the tracker row and reloading.
+4. **CLOSED, 2026-09-22, misdiagnosis.** "HubSpot holds duplicate company
+   records" was investigated and re-verified independently against BigQuery's
+   Fivetran-synced `hubspot.company` table: 220 rows, 209 distinct names, 11
+   null names, zero duplicate names (exact or case/whitespace normalized). The
+   Hightouch sync is correctly configured as an upsert matching `company` to
+   `name`. Of the 98 companies in `mart_referral_scoring`, 9 already existed as
+   HubSpot records from unrelated prior activity and were updated in place;
+   the other 89 did not exist yet and were correctly inserted, all at the same
+   sync timestamp. 9 + 89 = 98 with no residual. Nothing to clean up. No CRM
+   count needs caveating on this account.
+5. **CLOSED, 2026-09-22.** "One conflicting-status tracker row" is resolved at
+   the source. The tracker (`../claude-linkedin-assistant/job_tracker.csv`) no
+   longer has a company+role pair recorded under two different statuses:
+   reloaded and reverified end to end (Postgres 460 rows, BigQuery 460 rows via
+   manual Fivetran sync, dbt run and dbt test both clean, 9 models / 38 tests).
+   `funnel_phone_screen` is 2, matching the pre-conflict baseline, and is no
+   longer "whichever row Postgres loaded last": both rows now resolve to
+   distinct, non-colliding statuses independent of load order.
 6. **`content/reveal-post.md` not yet drafted.** The LinkedIn reveal post.
    Gitignored, local only. Subject to the no-em-dash rule.
 
