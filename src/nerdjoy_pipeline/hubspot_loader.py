@@ -78,7 +78,7 @@ def web_domain(company: TargetCompany) -> str:
     neither can identify a company. The ATS slug is the only per-company handle
     available, so the domain is derived from it. A slug that already contains a
     dot is treated as domain-like and used as is, because appending ".com" to
-    "customer.io" would yield the wrong "customerio.com".
+    "hollowpine.io" would yield the wrong "hollowpineio.com".
     """
     slug = company.slug.strip().lower()
     if not slug:
