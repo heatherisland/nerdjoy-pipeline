@@ -120,3 +120,18 @@ cp /tmp/m.bak metrics.json
 ```
 
 A green result from a check that has never been seen to fail proves nothing.
+
+## Automatic refresh
+
+`scripts/refresh.py` runs the whole chain locally: Postgres load, Fivetran
+sync, dbt run and test, Hightouch sheet sync, metrics, build, both privacy
+gates, then deploy with a server-side backup (last 5 kept). Any failure stops
+the run before deploy and raises a macOS notification. It refuses to delete
+more than 25 Postgres rows in one run, and skips when the tracker export is
+unchanged since the last success. Counts-only log: `.local/refresh.log`.
+
+A launchd agent, `~/Library/LaunchAgents/tech.nerdjoy.pipeline-refresh.plist`,
+runs it through `scripts/refresh_launchd.sh` whenever `.local/tracker/` changes
+and daily at 07:00. The Mac must be awake. Manual run:
+`.venv/bin/python scripts/refresh.py --force` (add `--no-deploy` to stop after
+the gates). Settings live in `.env`; see the refresh block in `.env.example`.
