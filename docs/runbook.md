@@ -232,3 +232,56 @@ metrics ship together so the denominator is visible rather than implied:
 
 Reporting the opportunity rate without the coverage would suggest it
 describes the whole pipeline. It does not.
+
+## HUMAN STEP: narrow the service account from roles/owner
+
+The pipeline service account still holds `roles/owner` on the project. Owner can
+delete the project, mint keys and grant itself anything, and the account's
+address was published in this file until 2026-09-21. Everything the pipeline
+actually does is covered by four narrow roles.
+
+Claude does not run these: they need an authenticated gcloud session.
+
+```bash
+gcloud auth login
+PROJECT="$BIGQUERY_PROJECT"                 # from .env
+SA="$(gcloud iam service-accounts list --project "$PROJECT" \
+      --format='value(email)' --filter='displayName:gtm OR email:gtm-job-search')"
+echo "$PROJECT / $SA"                       # confirm before continuing
+
+# 1. What does it hold today? Record this before changing anything.
+gcloud projects get-iam-policy "$PROJECT" \
+  --flatten='bindings[].members' \
+  --filter="bindings.members:$SA" \
+  --format='value(bindings.role)'
+
+# 2. Grant only what the pipeline uses: dbt runs queries and writes tables,
+#    Hightouch reads, and the sheet sync needs no project role.
+for ROLE in roles/bigquery.dataEditor roles/bigquery.jobUser roles/bigquery.user; do
+  gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member="serviceAccount:$SA" --role="$ROLE" --condition=None >/dev/null
+done
+
+# 3. Verify the pipeline still works BEFORE removing owner, so a failure here
+#    is recoverable. Both must succeed.
+(cd dbt && dbt run && dbt test)
+
+# 4. Only after step 3 passes, drop owner.
+gcloud projects remove-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:$SA" --role='roles/owner' --condition=None
+
+# 5. Confirm owner is gone and the narrow roles remain.
+gcloud projects get-iam-policy "$PROJECT" \
+  --flatten='bindings[].members' \
+  --filter="bindings.members:$SA" \
+  --format='value(bindings.role)'
+```
+
+If step 3 fails, add the missing role rather than restoring owner. Hightouch and
+Fivetran authenticate with their own credentials and are unaffected by this
+change.
+
+Note: the project id and this account's address remain in pushed git history
+from commits made before 2026-09-21. Neither is a credential and no key was ever
+committed, so the decision was to leave history intact and narrow the roles
+instead. Narrowing the roles is what actually reduces the risk.
