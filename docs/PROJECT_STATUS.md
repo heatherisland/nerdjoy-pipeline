@@ -22,10 +22,14 @@ not themselves produce.
 - Dashboard: https://nerdjoy.tech/pipeline/ Verified byte-identical to
   `dashboard/dist/index.html`. Served by Apache from `public_html/pipeline/`.
 - Repo: github.com/heatherisland/nerdjoy-pipeline, `main` at `db841d3`.
-- Published figures: 460 applications, 378 companies. Channels sum to exactly
-  460, which proves no application was dropped or double counted. Activity sums
-  to 249, which is lower on purpose: it counts only applications with a
-  submission date, because rows still queued to apply have no such date.
+- Published figures (2026-09-22 reload): 811 applications, 654 companies.
+  Channels sum to exactly 811, which proves no application was dropped or
+  double counted. Activity sums to 591, which is lower on purpose: it counts
+  only applications with a submission date, because rows still queued to apply
+  have no such date.
+- Tracker source: a deduped, validated export written by the sibling tracker
+  repo to gitignored `.local/tracker/job_tracker.csv` (812 rows, one of them an
+  excluded company, so 811 load). Every reader defaults to it.
 
 ### Why the dashboard is NOT served from the webhook app
 
@@ -97,9 +101,12 @@ either script. A green result from an unproven check is worthless.
 
 ## Data facts that look like bugs but are not
 
-- **466 tracker rows collapse to 460 applications.** `application_key` is
-  SHA-256 of `company|role`, and six company-and-role pairs appear twice. The
-  collapse happens in Postgres before Fivetran sees it.
+- **Postgres is upsert-only.** `application_key` is SHA-256 of `company|role`.
+  When the tracker's dedupe changes a key, the old row is not removed by the
+  loader; the 2026-09-22 reload deleted 2 such stale keys by hand. Check for
+  keys in Postgres that are absent from the tracker before each reload.
+- **Offer shows 0 on the dashboard.** The one Offer row belongs to an excluded
+  company and is dropped on read, by design.
 - **Activity sums to 249, not 460.** Only applications with a submission date
   are counted. This is labeled on the dashboard.
 - **98 companies carry a referral score, not all of them.** The mart only

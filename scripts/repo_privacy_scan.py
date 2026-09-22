@@ -28,7 +28,7 @@ from nerdjoy_pipeline.tracker import (  # noqa: E402
 )
 
 DEFAULT_TRACKER = os.environ.get(
-    "TRACKER_PATH", "../claude-linkedin-assistant/job_tracker.csv"
+    "TRACKER_PATH", ".local/tracker/job_tracker.csv"
 )
 
 # Tracker companies whose names are also ordinary English that this repo must be
@@ -39,7 +39,9 @@ DEFAULT_TRACKER = os.environ.get(
 #   "remote"    - the Location and Type column value on nearly every row.
 #   "canonical" - the adjective, as in "canonical status".
 #   "ready"     - the adjective, as in "drafted and ready".
-ORDINARY_WORD_COMPANIES = frozenset({"remote", "canonical", "ready"})
+#   "real"      - the adjective, as in "real data" and "real company names".
+#   "locally"   - the adverb, as in "not installed locally".
+ORDINARY_WORD_COMPANIES = frozenset({"remote", "canonical", "ready", "real", "locally"})
 
 ALLOWED = VENDOR_TOOL_NAMES | ORDINARY_WORD_COMPANIES
 

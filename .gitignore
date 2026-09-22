@@ -62,3 +62,7 @@ config/excluded_companies.txt
 # Internal build scaffolding: holds real project ids, local paths and
 # decision history. Kept on disk, never published.
 docs/superpowers/
+
+# Scratch output for local scripts, e.g. email_reconcile's review CSV. Never
+# committed: it can hold real company names pulled from an inbox.
+.local/

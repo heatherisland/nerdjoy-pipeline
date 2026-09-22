@@ -19,9 +19,11 @@ Rebuild all of them before trusting any run.
 | `metrics.json` | generated output | regenerate, see below |
 | `dbt/seeds/applications_seed.csv` | generated seed | `python scripts/make_seed.py` |
 
-The source tracker itself lives OUTSIDE this repo, in a sibling private repo,
-and is never copied in. Point at it with `TRACKER_PATH` if it is not at the
-default relative location `../claude-linkedin-assistant/job_tracker.csv`.
+The master tracker lives OUTSIDE this repo, in a sibling private repo. That
+repo's tooling dedupes it and exports a clean, validated copy to
+`.local/tracker/job_tracker.csv` (gitignored), with counts in
+`.local/tracker/MANIFEST.txt`. Every reader here defaults to that copy; override
+with `TRACKER_PATH`.
 
 ## Why the two config files matter
 

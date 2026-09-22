@@ -30,7 +30,7 @@ DEFAULT_TARGETS = [
     "README.md",
 ]
 DEFAULT_TRACKER = os.environ.get(
-    "TRACKER_PATH", "/Users/heatherbarry/claude-linkedin-assistant/job_tracker.csv"
+    "TRACKER_PATH", ".local/tracker/job_tracker.csv"
 )
 
 

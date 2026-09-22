@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--tracker",
         default=os.environ.get(
-            "TRACKER_PATH", "../claude-linkedin-assistant/job_tracker.csv"
+            "TRACKER_PATH", ".local/tracker/job_tracker.csv"
         ),
     )
     args = parser.parse_args(argv)
