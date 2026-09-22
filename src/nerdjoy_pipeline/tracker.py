@@ -185,3 +185,18 @@ def read_tracker(
         )
         for r in rows
     ]
+
+
+# The pipeline covers the search from this date on. Applied to data paths only:
+# deny lists and the repo scan must keep reading the full tracker, or a pre-cutoff
+# name would silently fall off them.
+PIPELINE_START = date(2026, 7, 1)
+
+
+def in_pipeline_window(apps: list[Application]) -> list[Application]:
+    """Keep applications dated on or after PIPELINE_START (applied, else discovered)."""
+    return [
+        a for a in apps
+        if (a.applied_date or a.discovered_date)
+        and (a.applied_date or a.discovered_date) >= PIPELINE_START
+    ]

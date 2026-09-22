@@ -14,7 +14,7 @@ from pathlib import Path
 
 from nerdjoy_pipeline.guard import GuardViolation, build_denylist, guard_text
 from nerdjoy_pipeline.metrics import FUNNEL_ORDER, summary
-from nerdjoy_pipeline.tracker import read_tracker
+from nerdjoy_pipeline.tracker import in_pipeline_window, read_tracker
 
 DEFAULT_TRACKER = os.environ.get(
     "TRACKER_PATH", ".local/tracker/job_tracker.csv"
@@ -148,7 +148,7 @@ def export_metrics(
             activity_rows=_fetch_activity_rows(),
         )
     else:
-        body = summary(read_tracker(tracker_path))
+        body = summary(in_pipeline_window(read_tracker(tracker_path)))
     payload = {"generated_at": date.today().isoformat(), **body}
 
     serialized = json.dumps(payload, indent=2, sort_keys=False)

@@ -22,14 +22,17 @@ not themselves produce.
 - Dashboard: https://nerdjoy.tech/pipeline/ Verified byte-identical to
   `dashboard/dist/index.html`. Served by Apache from `public_html/pipeline/`.
 - Repo: github.com/heatherisland/nerdjoy-pipeline, `main` at `db841d3`.
-- Published figures (2026-09-22 reload): 811 applications, 654 companies.
-  Channels sum to exactly 811, which proves no application was dropped or
-  double counted. Activity sums to 591, which is lower on purpose: it counts
+- Published figures (2026-09-22 reload, July 2026 onward): 792 applications, 641 companies.
+  Channels sum to exactly 792, which proves no application was dropped or
+  double counted. Activity sums to 572, which is lower on purpose: it counts
   only applications with a submission date, because rows still queued to apply
   have no such date.
 - Tracker source: a deduped, validated export written by the sibling tracker
   repo to gitignored `.local/tracker/job_tracker.csv` (812 rows, one of them an
-  excluded company, so 811 load). Every reader defaults to it.
+  excluded company). Every reader defaults to it. Data paths (Postgres loader,
+  metrics, seed) keep only applications dated 2026-07-01 or later via
+  `in_pipeline_window`, so 792 load. Deny lists and the repo scan still read
+  the full tracker.
 
 ### Why the dashboard is NOT served from the webhook app
 

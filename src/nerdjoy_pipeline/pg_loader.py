@@ -12,7 +12,7 @@ import os
 import sys
 
 from nerdjoy_pipeline.metrics import generalize_channel
-from nerdjoy_pipeline.tracker import Application, read_tracker
+from nerdjoy_pipeline.tracker import Application, in_pipeline_window, read_tracker
 
 CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS applications (
@@ -108,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
 
     import psycopg  # imported here so the tests never need the driver
 
-    apps = read_tracker(args.tracker)
+    apps = in_pipeline_window(read_tracker(args.tracker))
     with psycopg.connect(dsn) as conn:
         count = load_applications(apps, conn)
     print(f"Upserted {count} applications into Postgres")

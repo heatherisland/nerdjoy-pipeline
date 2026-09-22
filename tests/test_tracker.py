@@ -8,7 +8,9 @@ from nerdjoy_pipeline.tracker import (
     VALID_PRIORITIES,
     VALID_REFERRAL_STATUSES,
     VALID_STATUSES,
+    PIPELINE_START,
     Application,
+    in_pipeline_window,
     is_excluded,
     normalize_apply_via,
     parse_date,
@@ -175,3 +177,26 @@ def test_activity_timeseries_is_populated_from_the_real_tracker_format():
     ]
     series = activity_timeseries(apps)
     assert series == [{"month": "2026-08", "applied": 1}, {"month": "2026-09", "applied": 1}]
+
+
+def _app(applied, discovered):
+    return Application(
+        company="Example Corp", role="Engineer", status="Applied", priority="LOW",
+        referral_needed=False, referral_status="Not Needed", apply_via="Unknown",
+        applied_date=applied, discovered_date=discovered,
+    )
+
+
+def test_pipeline_window_uses_applied_then_discovered_date():
+    kept = in_pipeline_window([
+        _app(date(2026, 7, 1), date(2026, 6, 1)),   # applied on the cutoff: kept
+        _app(date(2026, 6, 30), date(2026, 7, 5)),  # applied before: dropped
+        _app(None, date(2026, 7, 2)),               # no applied, discovered after: kept
+        _app(None, date(2026, 6, 2)),               # no applied, discovered before: dropped
+        _app(None, None),                           # undated: dropped
+    ])
+    assert [(a.applied_date, a.discovered_date) for a in kept] == [
+        (date(2026, 7, 1), date(2026, 6, 1)),
+        (None, date(2026, 7, 2)),
+    ]
+    assert PIPELINE_START == date(2026, 7, 1)

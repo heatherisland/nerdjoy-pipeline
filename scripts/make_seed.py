@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from nerdjoy_pipeline.pg_loader import application_key  # noqa: E402
-from nerdjoy_pipeline.tracker import read_tracker  # noqa: E402
+from nerdjoy_pipeline.tracker import in_pipeline_window, read_tracker  # noqa: E402
 
 TRACKER = os.environ.get(
     "TRACKER_PATH", ".local/tracker/job_tracker.csv"
@@ -35,7 +35,7 @@ FIELDS = [
 
 
 def main() -> int:
-    apps = read_tracker(TRACKER)
+    apps = in_pipeline_window(read_tracker(TRACKER))
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with open(OUT, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=FIELDS)
