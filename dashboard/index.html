@@ -22,7 +22,12 @@
 
   <section aria-labelledby="funnel-heading">
     <h2 id="funnel-heading">The funnel</h2>
-    <div class="funnel" id="funnel"></div>
+    <div class="chart-frame">
+      <canvas id="funnel-chart" role="img" aria-label="Pipeline funnel showing counts from first submission through offer"></canvas>
+    </div>
+    <div class="chart-frame chart-frame--small">
+      <canvas id="funnel-outcomes-chart" role="img" aria-label="Rejected and withdrew counts"></canvas>
+    </div>
   </section>
 
   <section aria-labelledby="arch-heading">
@@ -41,12 +46,16 @@
 
   <section aria-labelledby="activity-heading">
     <h2 id="activity-heading">Activity over time</h2>
-    <div class="activity" id="activity"></div>
+    <div class="chart-frame">
+      <canvas id="activity-chart" role="img" aria-label="Applications submitted by month"></canvas>
+    </div>
   </section>
 
   <section aria-labelledby="channels-heading">
     <h2 id="channels-heading">Where applications go</h2>
-    <div class="channels" id="channels"></div>
+    <div class="chart-frame chart-frame--tall">
+      <canvas id="channels-chart" role="img" aria-label="Top application channels"></canvas>
+    </div>
   </section>
 
   <footer>
@@ -56,6 +65,9 @@
 </main>
 
 <script id="metrics-data" type="application/json">__METRICS_JSON__</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+  integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="app.js"></script>
 </body>
 </html>
