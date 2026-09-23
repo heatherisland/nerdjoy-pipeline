@@ -3,6 +3,7 @@
 
   var FUNNEL_STEPS = ["To Apply", "Applied", "Recruiter Call", "Phone Screen", "Onsite", "Offer"];
   var OUTCOME_KEYS = ["Rejected", "Withdrew"];
+  var REDUCED_MOTION = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -16,9 +17,6 @@
   }
 
   function withAlpha(color, alpha) {
-    // Chart.js accepts any valid CSS color string, so blend with the page
-    // background via color-mix() rather than assuming a particular color
-    // notation for the custom property value.
     return "color-mix(in srgb, " + color + " " + Math.round(alpha * 100) + "%, transparent)";
   }
 
@@ -26,11 +24,17 @@
     return {
       fg: cssVar("--fg"),
       muted: cssVar("--muted"),
-      accent: cssVar("--accent"),
-      accentSoft: cssVar("--accent-soft"),
+      cyan: cssVar("--cyan"),
+      magenta: cssVar("--magenta"),
       line: cssVar("--line"),
-      bg: cssVar("--bg")
+      surface: cssVar("--surface"),
+      ui: cssVar("--font-ui"),
+      mono: cssVar("--font-mono")
     };
+  }
+
+  function chartAnimation() {
+    return REDUCED_MOTION ? false : { duration: 600, easing: "easeOutQuart" };
   }
 
   function wholeNumberTick(value) {
@@ -40,30 +44,98 @@
   function baseGridOptions(theme) {
     return {
       grid: { color: theme.line, drawTicks: false },
-      ticks: { color: theme.muted, font: { size: 12 } },
+      ticks: { color: theme.muted, font: { size: 12, family: theme.ui } },
       border: { color: theme.line }
     };
   }
 
-  // ---- tiles, with a count-up reveal ----------------------------------
+  function tooltipOptions(theme, labelFn) {
+    var opts = {
+      backgroundColor: theme.surface,
+      titleColor: theme.fg,
+      bodyColor: theme.fg,
+      borderColor: theme.line,
+      borderWidth: 1,
+      padding: 10,
+      titleFont: { family: theme.mono, size: 12 },
+      bodyFont: { family: theme.ui, size: 13 }
+    };
+    if (labelFn) opts.callbacks = { label: labelFn };
+    return opts;
+  }
 
-  function animateCount(node, target, opts) {
-    opts = opts || {};
-    var suffix = opts.suffix || "";
-    var duration = opts.duration || 900;
-    var start = null;
+  // Prints each bar's value past its end, so horizontal bar charts read
+  // without hovering (touch screens have no hover).
+  var barValueLabels = {
+    id: "barValueLabels",
+    afterDatasetsDraw: function (chart) {
+      var ctx = chart.ctx;
+      var theme = chart.options.plugins.barValueLabels || {};
+      chart.data.datasets.forEach(function (dataset, i) {
+        chart.getDatasetMeta(i).data.forEach(function (bar, j) {
+          ctx.save();
+          ctx.fillStyle = theme.color;
+          ctx.font = "600 12px " + theme.family;
+          ctx.textBaseline = "middle";
+          ctx.fillText(String(dataset.data[j]), bar.x + 6, bar.y);
+          ctx.restore();
+        });
+      });
+    }
+  };
 
-    if (!target || typeof target !== "number" || !isFinite(target)) {
+  // ---- accessible data tables -----------------------------------------------
+
+  // Every chart gets a visually hidden table of the same numbers, so screen
+  // readers get the data rather than a one-line canvas label.
+  function renderDataTable(canvasId, caption, headers, rows) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    var frame = canvas.closest(".chart-frame");
+    var tableId = canvasId + "-table";
+    var old = document.getElementById(tableId);
+    if (old) old.remove();
+
+    var table = el("table", "sr-only");
+    table.id = tableId;
+    table.appendChild(el("caption", null, caption));
+    var head = el("tr");
+    headers.forEach(function (h) {
+      var th = el("th", null, h);
+      th.scope = "col";
+      head.appendChild(th);
+    });
+    var thead = el("thead");
+    thead.appendChild(head);
+    table.appendChild(thead);
+    var tbody = el("tbody");
+    rows.forEach(function (r) {
+      var tr = el("tr");
+      var th = el("th", null, r[0]);
+      th.scope = "row";
+      tr.appendChild(th);
+      tr.appendChild(el("td", null, r[1]));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    frame.insertAdjacentElement("afterend", table);
+  }
+
+  // ---- tiles ----------------------------------------------------------------
+
+  function animateCount(node, target, suffix) {
+    if (REDUCED_MOTION || typeof target !== "number" || !isFinite(target) || !target) {
       node.textContent = String(target) + suffix;
       return;
     }
-
+    var decimals = Number.isInteger(target) ? 0 : 1;
+    var duration = 700;
+    var start = null;
     function tick(ts) {
       if (start === null) start = ts;
       var progress = Math.min((ts - start) / duration, 1);
       var eased = 1 - Math.pow(1 - progress, 3);
-      var value = Math.round(target * eased);
-      node.textContent = value + suffix;
+      node.textContent = (target * eased).toFixed(decimals) + suffix;
       if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -80,128 +152,91 @@
       { value: refs.conversion_pct || 0, label: "referral conversion", suffix: "%" }
     ];
     tiles.forEach(function (t, index) {
+      var suffix = t.suffix || "";
       var tile = el("div", "tile");
-      tile.style.transitionDelay = (index * 60) + "ms";
-      var valueNode = el("div", "value", "0" + (t.suffix || ""));
+      tile.style.transitionDelay = (index * 40) + "ms";
+      var valueNode = el("div", "value", (REDUCED_MOTION ? t.value : 0) + suffix);
       tile.appendChild(valueNode);
       tile.appendChild(el("div", "label", t.label));
       host.appendChild(tile);
-      // Force layout before adding the visible class so the CSS transition runs.
       requestAnimationFrame(function () {
         tile.classList.add("is-visible");
-        animateCount(valueNode, t.value, { suffix: t.suffix || "" });
+        animateCount(valueNode, t.value, suffix);
       });
     });
   }
 
-  // ---- charts -----------------------------------------------------------
+  // ---- charts ---------------------------------------------------------------
 
-  function destroyChart(chart) {
-    if (chart) chart.destroy();
+  function horizontalBar(canvas, theme, labels, values, color, unit) {
+    return new Chart(canvas.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: unit,
+          data: values,
+          backgroundColor: withAlpha(color, 0.85),
+          hoverBackgroundColor: color,
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      plugins: [barValueLabels],
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: chartAnimation(),
+        layout: { padding: { right: 36 } },
+        scales: {
+          x: Object.assign({ beginAtZero: true }, baseGridOptions(theme), {
+            ticks: { callback: wholeNumberTick, color: theme.muted, font: { size: 12, family: theme.ui } }
+          }),
+          y: Object.assign({}, baseGridOptions(theme), { grid: { display: false } })
+        },
+        plugins: {
+          legend: { display: false },
+          barValueLabels: { color: theme.fg, family: theme.ui },
+          tooltip: tooltipOptions(theme, function (ctx) {
+            return ctx.parsed.x + " " + unit + (ctx.parsed.x === 1 ? "" : "s");
+          })
+        }
+      }
+    });
   }
 
   function renderFunnelChart(data, theme) {
     var canvas = document.getElementById("funnel-chart");
-    if (!canvas || !window.Chart) return null;
     var funnel = data.funnel || {};
-    var labels = FUNNEL_STEPS.filter(function (step) {
-      return Object.prototype.hasOwnProperty.call(funnel, step);
-    });
-    var values = labels.map(function (step) { return funnel[step] || 0; });
-
-    return new Chart(canvas.getContext("2d"), {
-      type: "bar",
-      data: {
-        labels: labels,
-        datasets: [{
-          label: "Applications",
-          data: values,
-          backgroundColor: withAlpha(theme.accent, 0.85),
-          hoverBackgroundColor: theme.accent,
-          borderRadius: 6,
-          borderSkipped: false
-        }]
-      },
-      options: {
-        indexAxis: "y",
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 900, easing: "easeOutQuart" },
-        scales: {
-          x: Object.assign({ beginAtZero: true }, baseGridOptions(theme)),
-          y: Object.assign({}, baseGridOptions(theme), { grid: { display: false } })
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: theme.bg,
-            titleColor: theme.fg,
-            bodyColor: theme.fg,
-            borderColor: theme.line,
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: function (ctx) { return ctx.parsed.x + " application" + (ctx.parsed.x === 1 ? "" : "s"); }
-            }
-          }
-        }
-      }
-    });
+    var labels = FUNNEL_STEPS.filter(function (s) { return Object.prototype.hasOwnProperty.call(funnel, s); });
+    var values = labels.map(function (s) { return funnel[s] || 0; });
+    renderDataTable("funnel-chart", "Applications at each step of the funnel", ["Step", "Applications"],
+      labels.map(function (l, i) { return [l, values[i]]; }));
+    if (!canvas || !window.Chart) return null;
+    return horizontalBar(canvas, theme, labels, values, theme.cyan, "application");
   }
 
   function renderFunnelOutcomesChart(data, theme) {
     var canvas = document.getElementById("funnel-outcomes-chart");
-    if (!canvas || !window.Chart) return null;
     var funnel = data.funnel || {};
-    var labels = OUTCOME_KEYS.filter(function (step) {
-      return Object.prototype.hasOwnProperty.call(funnel, step);
-    });
-    var values = labels.map(function (step) { return funnel[step] || 0; });
+    var labels = OUTCOME_KEYS.filter(function (s) { return Object.prototype.hasOwnProperty.call(funnel, s); });
     if (!labels.length) return null;
-
-    return new Chart(canvas.getContext("2d"), {
-      type: "bar",
-      data: {
-        labels: labels,
-        datasets: [{
-          label: "Count",
-          data: values,
-          backgroundColor: withAlpha(theme.muted, 0.7),
-          hoverBackgroundColor: theme.muted,
-          borderRadius: 6,
-          borderSkipped: false
-        }]
-      },
-      options: {
-        indexAxis: "y",
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 900, easing: "easeOutQuart" },
-        scales: {
-          x: Object.assign({ beginAtZero: true }, baseGridOptions(theme)),
-          y: Object.assign({}, baseGridOptions(theme), { grid: { display: false } })
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: theme.bg,
-            titleColor: theme.fg,
-            bodyColor: theme.fg,
-            borderColor: theme.line,
-            borderWidth: 1,
-            padding: 10
-          }
-        }
-      }
-    });
+    var values = labels.map(function (s) { return funnel[s] || 0; });
+    renderDataTable("funnel-outcomes-chart", "Applications that ended without an offer", ["Outcome", "Applications"],
+      labels.map(function (l, i) { return [l, values[i]]; }));
+    if (!canvas || !window.Chart) return null;
+    return horizontalBar(canvas, theme, labels, values, theme.magenta, "application");
   }
 
   function renderActivityChart(data, theme) {
     var canvas = document.getElementById("activity-chart");
-    if (!canvas || !window.Chart) return null;
     var activity = data.activity || [];
     var labels = activity.map(function (a) { return a.month; });
     var values = activity.map(function (a) { return a.applied; });
+    renderDataTable("activity-chart", "Applications submitted per month", ["Month", "Applied"],
+      labels.map(function (l, i) { return [l, values[i]]; }));
+    if (!canvas || !window.Chart) return null;
 
     return new Chart(canvas.getContext("2d"), {
       type: "line",
@@ -210,13 +245,13 @@
         datasets: [{
           label: "Applied",
           data: values,
-          borderColor: theme.accent,
-          backgroundColor: withAlpha(theme.accent, 0.18),
-          pointBackgroundColor: theme.accent,
-          pointBorderColor: theme.bg,
+          borderColor: theme.magenta,
+          backgroundColor: withAlpha(theme.magenta, 0.16),
+          pointBackgroundColor: theme.magenta,
+          pointBorderColor: theme.surface,
           pointRadius: 4,
           pointHoverRadius: 6,
-          tension: 0.35,
+          cubicInterpolationMode: "monotone",
           fill: true,
           borderWidth: 2
         }]
@@ -224,25 +259,17 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 900, easing: "easeOutQuart" },
+        animation: chartAnimation(),
         interaction: { mode: "index", intersect: false },
         scales: {
           x: Object.assign({}, baseGridOptions(theme), { grid: { display: false } }),
-          y: Object.assign({ beginAtZero: true, ticks: { callback: wholeNumberTick, color: theme.muted } }, baseGridOptions(theme))
+          y: Object.assign({ beginAtZero: true }, baseGridOptions(theme), {
+            ticks: { callback: wholeNumberTick, color: theme.muted, font: { size: 12, family: theme.ui } }
+          })
         },
         plugins: {
           legend: { display: false },
-          tooltip: {
-            backgroundColor: theme.bg,
-            titleColor: theme.fg,
-            bodyColor: theme.fg,
-            borderColor: theme.line,
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: function (ctx) { return ctx.parsed.y + " applied"; }
-            }
-          }
+          tooltip: tooltipOptions(theme, function (ctx) { return ctx.parsed.y + " applied"; })
         }
       }
     });
@@ -250,104 +277,57 @@
 
   function renderChannelsChart(data, theme) {
     var canvas = document.getElementById("channels-chart");
-    if (!canvas || !window.Chart) return null;
     var channels = data.channels || {};
     var entries = Object.keys(channels)
       .map(function (k) { return [k, channels[k]]; })
       .sort(function (a, b) { return b[1] - a[1]; })
       .slice(0, 8);
-    var labels = entries.map(function (e) { return e[0]; });
-    var values = entries.map(function (e) { return e[1]; });
-
-    return new Chart(canvas.getContext("2d"), {
-      type: "bar",
-      data: {
-        labels: labels,
-        datasets: [{
-          label: "Applications",
-          data: values,
-          backgroundColor: withAlpha(theme.accent, 0.85),
-          hoverBackgroundColor: theme.accent,
-          borderRadius: 6,
-          borderSkipped: false
-        }]
-      },
-      options: {
-        indexAxis: "y",
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 900, easing: "easeOutQuart" },
-        scales: {
-          x: Object.assign({ beginAtZero: true, ticks: { callback: wholeNumberTick } }, baseGridOptions(theme)),
-          y: Object.assign({}, baseGridOptions(theme), { grid: { display: false } })
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: theme.bg,
-            titleColor: theme.fg,
-            bodyColor: theme.fg,
-            borderColor: theme.line,
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: function (ctx) { return ctx.parsed.x + " application" + (ctx.parsed.x === 1 ? "" : "s"); }
-            }
-          }
-        }
-      }
-    });
+    renderDataTable("channels-chart", "Top application channels", ["Channel", "Applications"], entries);
+    if (!canvas || !window.Chart) return null;
+    return horizontalBar(canvas, theme,
+      entries.map(function (e) { return e[0]; }),
+      entries.map(function (e) { return e[1]; }),
+      theme.cyan, "application");
   }
-
-  var charts = [];
 
   function renderCharts(data) {
-    charts.forEach(destroyChart);
-    charts = [];
     var theme = chartTheme();
-    charts.push(renderFunnelChart(data, theme));
-    charts.push(renderFunnelOutcomesChart(data, theme));
-    charts.push(renderActivityChart(data, theme));
-    charts.push(renderChannelsChart(data, theme));
+    if (window.Chart) {
+      Chart.defaults.font.family = theme.ui;
+      Chart.defaults.color = theme.muted;
+    }
+    renderFunnelChart(data, theme);
+    renderFunnelOutcomesChart(data, theme);
+    renderActivityChart(data, theme);
+    renderChannelsChart(data, theme);
   }
 
-  // Re-render charts when the OS color scheme flips, so dark mode colors
-  // apply without a page reload.
-  function watchColorScheme(data) {
-    if (!window.matchMedia) return;
-    var mq = window.matchMedia("(prefers-color-scheme: dark)");
-    var handler = function () { renderCharts(data); };
-    if (mq.addEventListener) mq.addEventListener("change", handler);
-    else if (mq.addListener) mq.addListener(handler);
-  }
+  // ---- refreshed timestamp --------------------------------------------------
 
-  // ---- scroll reveal ------------------------------------------------------
-
-  function revealOnScroll() {
-    var targets = document.querySelectorAll("main > section, main > footer");
-    if (!("IntersectionObserver" in window) || !targets.length) {
-      targets.forEach(function (t) { t.classList.add("is-visible"); });
+  function renderGenerated(raw) {
+    var node = document.getElementById("generated");
+    if (!raw) return;
+    var parsed = new Date(raw);
+    if (isNaN(parsed.getTime())) {
+      node.textContent = raw;
       return;
     }
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-visible");
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.15 });
-    targets.forEach(function (t) {
-      t.classList.add("reveal");
-      observer.observe(t);
-    });
+    node.setAttribute("datetime", parsed.toISOString());
+    // dateStyle cannot be combined with timeZoneName, so spell the fields out.
+    node.textContent = new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short"
+    }).format(parsed);
   }
 
-  // ---- data loading: fetch first, inline script tag as fallback ---------
+  // ---- data loading: fetch first, inline script tag as fallback -------------
 
   function readInlineData() {
-    var node = document.getElementById("metrics-data");
-    return JSON.parse(node.textContent);
+    return JSON.parse(document.getElementById("metrics-data").textContent);
   }
 
   function setLoading(isLoading) {
@@ -356,11 +336,13 @@
 
   function render(data) {
     renderTiles(data);
-    renderCharts(data);
-    watchColorScheme(data);
-    document.getElementById("generated").textContent = data.generated_at || "";
-    setLoading(false);
-    revealOnScroll();
+    renderGenerated(data.generated_at);
+    // Canvas text uses whatever font is loaded at draw time, so wait for Sora.
+    var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    fontsReady.then(function () {
+      renderCharts(data);
+      setLoading(false);
+    });
   }
 
   function boot() {
@@ -372,9 +354,8 @@
       })
       .then(render)
       .catch(function () {
-        // Offline, opened via file://, or metrics.json missing/stale: fall
-        // back to the inline, build-time guarded payload so the page still
-        // works standalone.
+        // Offline, opened via file://, or metrics.json missing: fall back to
+        // the inline, build-time guarded payload so the page still works.
         try {
           render(readInlineData());
         } catch (err) {

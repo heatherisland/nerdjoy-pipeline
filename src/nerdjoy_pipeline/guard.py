@@ -48,7 +48,7 @@ _GENERIC_NAME_TOKENS = frozenset({
     # and naming them would leak exactly what the deny list protects.
     "analytics", "aria", "code", "list", "main", "privacy", "search", "revenue",
     "blend", "infinite", "motion", "staffing", "distinct", "family", "from",
-    "workday",
+    "workday", "brand", "center", "outcome", "right", "short", "space", "unit",
 })
 
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
@@ -68,7 +68,7 @@ VENDOR_TOOL_NAMES = frozenset({
     # Whole company names that are also ordinary GTM vocabulary. These cannot go
     # on the generic stop list: the company IS the word, so dropping the term
     # would unprotect a real application. Context is the only safe separator.
-    "outreach", "revenue", "revenue.io", "real", "locally",
+    "outreach", "revenue", "revenue.io", "real", "locally", "one", "ready",
 })
 
 # Words that make a sentence about an application rather than about tooling.

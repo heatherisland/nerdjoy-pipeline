@@ -233,7 +233,9 @@ def deploy() -> None:
     ssh = ["ssh", "-p", port, "-i", key, "-o", "ConnectTimeout=20", "-o", "BatchMode=yes", target]
     backup = f"~/{path.replace('/', '_')}_backup_$(date +%Y%m%d%H%M%S)"
     prune = (
-        f"ls -dt ~/{path.replace('/', '_')}_backup_* | tail -n +{KEEP_SERVER_BACKUPS + 1} "
+        # Sort by the timestamped name: cp -a keeps the source mtime, so ls -t
+        # would order backups by when the live folder last changed.
+        f"ls -d ~/{path.replace('/', '_')}_backup_* | sort -r | tail -n +{KEEP_SERVER_BACKUPS + 1} "
         "| xargs -r rm -rf"
     )
     run(ssh + [f"cp -a ~/{path} {backup} && {prune}"], label="server backup")

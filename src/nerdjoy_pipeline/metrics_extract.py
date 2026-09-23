@@ -9,7 +9,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import date
+from datetime import datetime, timezone
 from pathlib import Path
 
 from nerdjoy_pipeline.guard import GuardViolation, build_denylist, guard_text
@@ -149,7 +149,7 @@ def export_metrics(
         )
     else:
         body = summary(in_pipeline_window(read_tracker(tracker_path)))
-    payload = {"generated_at": date.today().isoformat(), **body}
+    payload = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **body}
 
     serialized = json.dumps(payload, indent=2, sort_keys=False)
     denylist = build_denylist(tracker_path)

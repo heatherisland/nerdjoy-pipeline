@@ -19,11 +19,13 @@ def test_output_has_required_top_level_keys(sample_tracker_path: Path, tmp_path:
     assert set(payload) == {"generated_at", "totals", "funnel", "referrals", "channels", "activity"}
 
 
-def test_generated_at_is_iso_date(sample_tracker_path: Path, tmp_path: Path):
-    from datetime import date
+def test_generated_at_is_timezone_aware_iso_timestamp(sample_tracker_path: Path, tmp_path: Path):
+    from datetime import datetime
 
     payload = export_metrics(sample_tracker_path, tmp_path / "m.json")
-    date.fromisoformat(payload["generated_at"])  # raises if malformed
+    # A bare date parses as UTC midnight in browsers and shows the previous
+    # evening in US time zones, so the offset must be explicit.
+    assert datetime.fromisoformat(payload["generated_at"]).tzinfo is not None
 
 
 def test_output_contains_no_company_names(sample_tracker_path: Path, tmp_path: Path):
