@@ -123,9 +123,10 @@ A green result from a check that has never been seen to fail proves nothing.
 
 ## Automatic refresh
 
-`scripts/refresh.py` runs the whole chain locally: Postgres load, Fivetran
-sync, dbt run and test, Hightouch sheet sync, metrics, build, both privacy
-gates, then deploy with a server-side backup (last 5 kept). Any failure stops
+`scripts/refresh.py` loads Postgres, triggers the `gtm_pipeline` DAG on Astro
+(Fivetran sync, dbt run and test, Hightouch sheet sync) and waits for it,
+checks BigQuery's live row count, then builds metrics and the dashboard, runs
+both privacy gates, and deploys with a server-side backup (last 5 kept). Any failure stops
 the run before deploy and raises a macOS notification. It refuses to delete
 more than 25 Postgres rows in one run, and skips when the tracker export is
 unchanged since the last success. Counts-only log: `.local/refresh.log`.
@@ -135,3 +136,18 @@ runs it through `scripts/refresh_launchd.sh` whenever `.local/tracker/` changes
 and daily at 07:00. The Mac must be awake. Manual run:
 `.venv/bin/python scripts/refresh.py --force` (add `--no-deploy` to stop after
 the gates). Settings live in `.env`; see the refresh block in `.env.example`.
+
+## Airflow on Astro
+
+The Astro project is this repo: `Dockerfile` (Runtime 3.3-7, Python 3.12, dbt
+in its own `dbt_venv`), `requirements.txt`, `packages.txt`, `dags/`, and the
+env-driven profile `dbt/airflow/profiles.yml`. `.dockerignore` is an allowlist,
+so only `dags`, `dbt`, `plugins`, `include` and the requirement files enter the
+image. Credentials are secret deployment variables; the BigQuery key arrives as
+`GCP_SA_KEY_JSON` and is written to a temp file only while dbt runs.
+
+- Local test: `astro dev start --env .local/astro.env` (a gitignored env file
+  holding only the DAG's variables), then `astro dev run dags test gtm_pipeline`.
+- Deploy: `astro deploy <deployment-id>`.
+- `scripts/refresh.py` triggers runs with `AIRFLOW_API_URL` and a Deployment API
+  token in `AIRFLOW_API_TOKEN`. Without them it runs the same steps locally.

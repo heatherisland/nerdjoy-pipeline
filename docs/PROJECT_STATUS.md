@@ -134,11 +134,12 @@ Ranked. Nothing here blocks the dashboard, which is live and correct.
    account". Ordered so the pipeline is verified against the narrow roles
    BEFORE owner is dropped, making failure recoverable. Requires an
    authenticated gcloud session, so it is Heather's to run.
-2. **The DAG has never been parsed by Airflow.** `tests/test_dag.py` calls
-   `pytest.importorskip("airflow")` and Airflow is not installed locally, so it
-   collects 0 items and skips. A skip is not a pass. The file compiles and the
-   seven-task chain reads correctly, but first real validation happens on
-   deploy to Astro. Do not report the DAG as tested until it has run there.
+2. **CLOSED, 2026-09-22.** The DAG now runs on Astro (deployment
+   `nerdjoy-pipeline`, Runtime 3.3-7 / Airflow 3.3.1, Python 3.12 image because
+   dbt's dependencies do not support 3.14). It covers the cloud stages only:
+   Fivetran sync, dbt run, dbt test, Hightouch. Scheduled daily 13:00 UTC and
+   triggered by `scripts/refresh.py` after each tracker load. First cloud run
+   green on all four tasks; `tests/test_dag.py` passes inside the image.
 3. **26 soft-deleted agency-name tombstones in BigQuery raw.** All six agency
    names are `live=0` and invisible to every model and to the live page, but
    the rows persist and one grew from 11 to 13. A historical re-sync repopulates

@@ -18,7 +18,7 @@ aspirational, and nothing here is a toy dataset.
 | Warehouse | BigQuery, raw and analytics datasets |
 | Transform | dbt Core, staging models into funnel and scoring marts |
 | Activate | Hightouch reverse ETL into HubSpot and a targets sheet |
-| Orchestrate | Airflow, a single scheduled DAG |
+| Orchestrate | Airflow on Astro, a single scheduled DAG |
 | Control plane | An agent reads the marts and drafts messages for review |
 
 Data flows in a single direction: tracker to Postgres to Fivetran to BigQuery, transformed by
@@ -48,7 +48,7 @@ mode `r`, and no code here writes to it.
 
 ```
 docs/        project status, local setup, runbook
-dags/        Airflow DAG, the full task chain
+dags/        Airflow DAG: Fivetran sync, dbt run and test, Hightouch
 dbt/         staging models, funnel and scoring marts
 src/         tracker reader, loaders, metrics extraction, the privacy guard
 dashboard/   static build, metrics injected as JSON at build time
@@ -77,7 +77,7 @@ python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 ```
 
 The DAG tests skip unless Airflow is present, since Airflow is installed only
-in the deployed image.
+in the image. They run inside it after `astro dev start`.
 
 ## A note on the numbers
 

@@ -1,0 +1,14 @@
+# Used inside the Airflow image. Every value comes from the environment, so
+# nothing secret lives here.
+nerdjoy_pipeline:
+  target: prod
+  outputs:
+    prod:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('BIGQUERY_PROJECT') }}"
+      dataset: "{{ env_var('BIGQUERY_DATASET', 'nerdjoy_pipeline') }}"
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
+      threads: 4
+      location: US
+      priority: interactive

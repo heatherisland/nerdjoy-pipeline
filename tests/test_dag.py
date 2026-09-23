@@ -4,15 +4,7 @@ pytest.importorskip("airflow", reason="Airflow is only installed in the Astro im
 
 from airflow.models import DagBag  # noqa: E402
 
-EXPECTED_TASKS = {
-    "load_postgres",
-    "fivetran_sync",
-    "dbt_run",
-    "dbt_test",
-    "hightouch_sync",
-    "refresh_metrics",
-    "build_dashboard",
-}
+EXPECTED_TASKS = {"fivetran_sync", "dbt_run", "dbt_test", "hightouch_sync"}
 
 
 @pytest.fixture(scope="module")
@@ -24,8 +16,10 @@ def test_dag_imports_without_error(dagbag):
     assert dagbag.import_errors == {}
 
 
-def test_dag_exists(dagbag):
-    assert "gtm_pipeline" in dagbag.dags
+def test_dag_exists_and_is_scheduled(dagbag):
+    dag = dagbag.dags["gtm_pipeline"]
+    assert dag.schedule == "0 13 * * *"
+    assert dag.catchup is False
 
 
 def test_dag_has_every_task(dagbag):
@@ -39,20 +33,18 @@ def test_dag_runs_in_the_correct_order(dagbag):
     def downstream(task_id):
         return {t.task_id for t in dag.get_task(task_id).downstream_list}
 
-    assert downstream("load_postgres") == {"fivetran_sync"}
     assert downstream("fivetran_sync") == {"dbt_run"}
     assert downstream("dbt_run") == {"dbt_test"}
     assert downstream("dbt_test") == {"hightouch_sync"}
-    assert downstream("hightouch_sync") == {"refresh_metrics"}
-    assert downstream("refresh_metrics") == {"build_dashboard"}
+    assert downstream("hightouch_sync") == set()
 
 
-def test_dag_does_not_backfill(dagbag):
-    assert dagbag.dags["gtm_pipeline"].catchup is False
-
-
-def test_dbt_test_failure_stops_publication(dagbag):
-    # refresh_metrics must never run on a dbt_test failure, or the dashboard
-    # could publish numbers that failed validation.
+def test_dbt_test_failure_stops_activation(dagbag):
+    # Hightouch must never sync marts that failed validation.
     dag = dagbag.dags["gtm_pipeline"]
-    assert dag.get_task("refresh_metrics").trigger_rule == "all_success"
+    assert dag.get_task("hightouch_sync").trigger_rule == "all_success"
+
+
+def test_single_active_run(dagbag):
+    # The local refresh triggers runs too; two overlapping runs would race dbt.
+    assert dagbag.dags["gtm_pipeline"].max_active_runs == 1

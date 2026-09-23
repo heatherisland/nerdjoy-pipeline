@@ -1,8 +1,11 @@
-"""End-to-end refresh: tracker export -> Postgres -> BigQuery -> dbt -> publish.
+"""End-to-end refresh: tracker export -> Postgres -> Astro DAG -> publish.
 
-Local twin of dags/gtm_pipeline_dag.py. It runs on this machine because the
-tracker lives only here. Any failing step, including either privacy gate,
-stops the run before anything is published. Logs carry counts only.
+Loads the tracker into Postgres, triggers dags/gtm_pipeline_dag.py on Astro
+(Fivetran, dbt, Hightouch) and waits, then builds and publishes locally, because
+the tracker and the guard's deny list live only on this machine. Without
+AIRFLOW_API_URL/TOKEN it runs those cloud steps itself. Any failing step,
+including either privacy gate, stops the run before anything is published.
+Logs carry counts only.
 
 Usage: .venv/bin/python scripts/refresh.py [--force] [--no-deploy]
 """
@@ -145,6 +148,11 @@ def fivetran_sync(expected: int) -> None:
     else:
         raise Abort("Fivetran sync did not finish within 30 minutes")
 
+    check_bigquery(expected)
+    log("fivetran: synced")
+
+
+def check_bigquery(expected: int) -> None:
     from google.cloud import bigquery
 
     project = os.environ["BIGQUERY_PROJECT"]
@@ -155,7 +163,31 @@ def fivetran_sync(expected: int) -> None:
     live = list(bigquery.Client(project=project).query(q).result())[0].live
     if live != expected:
         raise Abort(f"BigQuery has {live} live rows, expected {expected}")
-    log(f"fivetran: synced, bigquery live rows {live}")
+    log(f"bigquery: {live} live rows")
+
+
+def astro_run(expected: int) -> None:
+    """Trigger gtm_pipeline on Astro (Fivetran, dbt run/test, Hightouch) and wait."""
+    from urllib.parse import quote
+
+    base = os.environ["AIRFLOW_API_URL"].rstrip("/") + "/dags/gtm_pipeline"
+    headers = {"Authorization": f"Bearer {os.environ['AIRFLOW_API_TOKEN']}"}
+    run = http("POST", f"{base}/dagRuns", headers, {"logical_date": None})
+    run_url = f"{base}/dagRuns/{quote(run['dag_run_id'], safe='')}"
+    deadline = time.time() + 60 * 60
+    while time.time() < deadline:
+        time.sleep(30)
+        state = http("GET", run_url, headers).get("state")
+        if state == "success":
+            break
+        if state == "failed":
+            tis = http("GET", f"{run_url}/taskInstances", headers).get("task_instances", [])
+            bad = [t["task_id"] for t in tis if t.get("state") not in ("success", "skipped")]
+            raise Abort(f"Astro run failed at {', '.join(bad) or 'unknown task'}")
+    else:
+        raise Abort("Astro run did not finish within 60 minutes")
+    log("astro: gtm_pipeline run succeeded (fivetran, dbt run, dbt test, hightouch)")
+    check_bigquery(expected)
 
 
 def dbt() -> None:
@@ -245,9 +277,12 @@ def main() -> int:
     log("refresh: start")
     try:
         expected = load_postgres()
-        fivetran_sync(expected)
-        dbt()
-        hightouch_sync()
+        if os.environ.get("AIRFLOW_API_URL") and os.environ.get("AIRFLOW_API_TOKEN"):
+            astro_run(expected)
+        else:
+            fivetran_sync(expected)
+            dbt()
+            hightouch_sync()
         build_and_gate()
         if not args.no_deploy:
             deploy()

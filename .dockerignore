@@ -1,0 +1,15 @@
+# Allowlist. The image is the project dir (astro-runtime ONBUILD COPY . .) and
+# is pushed to Astro, so exclude everything and admit only what Airflow runs.
+*
+!dags
+!plugins
+!include
+!packages.txt
+!requirements.txt
+!dbt
+dbt/target
+dbt/logs
+dbt/dbt_packages
+dbt/seeds/applications_seed.csv
+**/__pycache__
+**/.DS_Store

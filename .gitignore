@@ -66,3 +66,6 @@ docs/superpowers/
 # Scratch output for local scripts, e.g. email_reconcile's review CSV. Never
 # committed: it can hold real company names pulled from an inbox.
 .local/
+
+# Env-driven profile baked into the Airflow image; holds no secrets.
+!dbt/airflow/profiles.yml
