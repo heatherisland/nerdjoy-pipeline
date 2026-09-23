@@ -64,7 +64,7 @@ main { max-width: 960px; margin: 0 auto; padding: 56px 16px 72px; }
   height: 280px;
   background-image: radial-gradient(var(--cyan) 1px, transparent 1px);
   background-size: 8px 8px;
-  opacity: 0.14;
+  opacity: 0.24;
   mask-image: radial-gradient(ellipse at top right, #000 10%, transparent 70%);
   -webkit-mask-image: radial-gradient(ellipse at top right, #000 10%, transparent 70%);
   pointer-events: none;
@@ -75,6 +75,7 @@ main { max-width: 960px; margin: 0 auto; padding: 56px 16px 72px; }
 .eyebrow {
   display: inline-flex;
   align-items: center;
+  gap: 10px;
   font-family: var(--font-mono);
   font-weight: 500;
   font-size: 12px;
@@ -98,6 +99,44 @@ main { max-width: 960px; margin: 0 auto; padding: 56px 16px 72px; }
 }
 
 .nowrap { white-space: nowrap; }
+.mg { color: var(--magenta); }
+.cy { color: var(--cyan); }
+
+.pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  animation: pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.35; box-shadow: 0 0 2px var(--cyan); }
+}
+
+/* Magenta on the page background is 4.64:1, so small magenta text is only
+   ever set on --bg, never on --surface cards (3.84:1). */
+.pipeline {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--magenta);
+  margin: 20px 0 0;
+}
+.pipeline .arrow { color: var(--cyan); margin: 0 4px; }
+
+.kicker {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin: 72px 0 8px;
+}
+.kicker .br { color: var(--magenta); }
 
 .hero .sub { color: var(--muted); font-size: 18px; max-width: 62ch; margin: 0; }
 
@@ -108,7 +147,7 @@ h2 {
   line-height: 1;
   letter-spacing: 0.01em;
   text-transform: uppercase;
-  margin: 64px 0 16px;
+  margin: 0 0 16px;
 }
 
 .note { color: var(--muted); font-size: 15px; margin: 0 0 16px; }
@@ -123,6 +162,8 @@ h2 {
 }
 
 .tile {
+  position: relative;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
@@ -133,6 +174,24 @@ h2 {
 }
 
 .tile.is-visible { opacity: 1; transform: none; }
+
+.tile::before,
+.tile::after {
+  content: "";
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  opacity: 0.18;
+  pointer-events: none;
+}
+.tile::before { top: 0; left: 0; background: var(--magenta); clip-path: polygon(0 0, 100% 0, 0 100%); }
+.tile::after { bottom: 0; right: 0; background: var(--cyan); clip-path: polygon(100% 100%, 100% 0, 0 100%); }
+.tile > * { position: relative; }
+
+@media (hover: hover) {
+  .tile.is-visible:hover { border-color: var(--cyan); transform: translateY(-3px); }
+  .tile.is-visible:nth-child(even):hover { border-color: var(--magenta); }
+}
 
 .tile .value {
   font-family: var(--font-display);
@@ -157,6 +216,8 @@ h2 {
   padding: 16px 12px;
 }
 
+.chart-frame { border-top: 2px solid var(--cyan); }
+.chart-frame--mg { border-top-color: var(--magenta); }
 .chart-frame + .chart-frame { margin-top: 12px; }
 .chart-frame--small { height: 140px; }
 .chart-frame--tall { height: 340px; }
@@ -173,6 +234,7 @@ h2 {
 
 .arch li:nth-child(odd) { border-left-color: rgba(31, 217, 229, 0.45); }
 .arch li:nth-child(even) { border-left-color: rgba(236, 7, 130, 0.45); }
+.arch li:nth-child(even) .lane { color: var(--magenta); }
 
 .lane {
   display: inline-block;
@@ -185,10 +247,48 @@ h2 {
   color: var(--cyan);
 }
 
+/* Full-bleed magenta band. The box-shadow + clip-path pair paints edge to
+   edge without widening the page, so no horizontal scroll. */
+.strip {
+  position: relative;
+  margin-top: 80px;
+  padding: 48px 0;
+  background: var(--magenta);
+  box-shadow: 0 0 0 100vmax var(--magenta);
+  clip-path: inset(0 -100vmax);
+  color: var(--bg);
+}
+.strip::before {
+  content: "";
+  position: absolute;
+  inset: 0 -100vmax;
+  background-image: radial-gradient(rgba(10, 10, 10, 0.18) 1px, transparent 1.5px);
+  background-size: 10px 10px;
+  pointer-events: none;
+}
+.strip > * { position: relative; }
+.strip-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5.5vw, 64px);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin: 0 0 12px;
+}
+.strip-body { font-weight: 400; font-size: 16px; margin: 0; max-width: 60ch; }
+.strip a {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--bg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.strip a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
 footer {
-  margin-top: 64px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
+  margin-top: 0;
+  padding-top: 32px;
   color: var(--muted);
   font-size: 14px;
 }
@@ -197,6 +297,8 @@ footer {
 
 @media (prefers-reduced-motion: reduce) {
   body.is-loading .chart-frame { animation: none; }
+  .pulse { animation: none; }
+  .tile.is-visible:hover { transform: none; }
   .tile { transition: none; opacity: 1; transform: none; }
 }
 

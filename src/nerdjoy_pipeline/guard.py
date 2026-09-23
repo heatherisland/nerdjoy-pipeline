@@ -49,6 +49,7 @@ _GENERIC_NAME_TOKENS = frozenset({
     "analytics", "aria", "code", "list", "main", "privacy", "search", "revenue",
     "blend", "infinite", "motion", "staffing", "distinct", "family", "from",
     "workday", "brand", "center", "outcome", "right", "short", "space", "unit",
+    "customer", "edge",
 })
 
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")

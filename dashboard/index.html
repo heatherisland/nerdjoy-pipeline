@@ -15,27 +15,30 @@
 <body>
 <main>
   <header class="hero">
-    <p class="eyebrow">nerdjoy // Pipeline</p>
-    <h1>I run my job search like a <span class="nowrap">go-to-market</span> motion.</h1>
+    <p class="eyebrow"><span class="pulse" aria-hidden="true"></span>nerdjoy // Pipeline</p>
+    <h1>I run my job search like a <span class="mg nowrap">go-to-market</span> <span class="cy">motion.</span></h1>
     <p class="sub">
       Target companies are accounts. Hiring managers are leads. Referrals are warm intros.
       The tracker is the CRM. Here is the stack that runs it, and the real pipeline data.
     </p>
+    <p class="pipeline">tracker <span class="arrow" aria-hidden="true">&rarr;</span> postgres <span class="arrow" aria-hidden="true">&rarr;</span> fivetran <span class="arrow" aria-hidden="true">&rarr;</span> bigquery <span class="arrow" aria-hidden="true">&rarr;</span> dbt <span class="arrow" aria-hidden="true">&rarr;</span> hightouch <span class="arrow" aria-hidden="true">&rarr;</span> hubspot</p>
   </header>
 
   <section class="tiles" id="tiles" aria-label="Pipeline metrics"></section>
 
   <section aria-labelledby="funnel-heading">
+    <p class="kicker"><span class="br">{</span> 01 // funnel <span class="br">}</span></p>
     <h2 id="funnel-heading">The funnel</h2>
     <div class="chart-frame">
       <canvas id="funnel-chart" role="img" aria-label="Pipeline funnel showing counts from first submission through offer"></canvas>
     </div>
-    <div class="chart-frame chart-frame--small">
+    <div class="chart-frame chart-frame--small chart-frame--mg">
       <canvas id="funnel-outcomes-chart" role="img" aria-label="Rejected and withdrew counts"></canvas>
     </div>
   </section>
 
   <section aria-labelledby="arch-heading">
+    <p class="kicker"><span class="br">{</span> 02 // stack <span class="br">}</span></p>
     <h2 id="arch-heading">The stack</h2>
     <p class="note">Every tool below is wired and has run for real. Nothing here is aspirational.</p>
     <ol class="arch">
@@ -50,18 +53,26 @@
   </section>
 
   <section aria-labelledby="activity-heading">
+    <p class="kicker"><span class="br">{</span> 03 // activity <span class="br">}</span></p>
     <h2 id="activity-heading">Activity over time</h2>
-    <div class="chart-frame">
+    <div class="chart-frame chart-frame--mg">
       <canvas id="activity-chart" role="img" aria-label="Applications submitted by month"></canvas>
     </div>
   </section>
 
   <section aria-labelledby="channels-heading">
+    <p class="kicker"><span class="br">{</span> 04 // channels <span class="br">}</span></p>
     <h2 id="channels-heading">Where applications go</h2>
     <div class="chart-frame chart-frame--tall">
       <canvas id="channels-chart" role="img" aria-label="Top application channels"></canvas>
     </div>
   </section>
+
+  <aside class="strip" aria-label="About NerdJoy">
+    <p class="strip-title">Martech consulting that doesn't suck.</p>
+    <p class="strip-body">Built by NerdJoy. The same stack, pointed at your customer data.
+      <a href="https://nerdjoy.tech/">nerdjoy.tech <span aria-hidden="true">&rarr;</span></a></p>
+  </aside>
 
   <footer>
     <p>Aggregates only. No company names, no contacts, no personal data.</p>
