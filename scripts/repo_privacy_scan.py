@@ -41,7 +41,11 @@ DEFAULT_TRACKER = os.environ.get(
 #   "ready"     - the adjective, as in "drafted and ready".
 #   "real"      - the adjective, as in "real data" and "real company names".
 #   "locally"   - the adverb, as in "not installed locally".
-ORDINARY_WORD_COMPANIES = frozenset({"remote", "canonical", "ready", "real", "locally"})
+#   "undisclosed (linkedin partner)" - the tracker's own anonymized placeholder,
+#                 not a company; tests use it to exercise parenthetical names.
+ORDINARY_WORD_COMPANIES = frozenset({
+    "remote", "canonical", "ready", "real", "locally", "undisclosed (linkedin partner)",
+})
 
 ALLOWED = VENDOR_TOOL_NAMES | ORDINARY_WORD_COMPANIES
 
@@ -82,7 +86,7 @@ def main() -> int:
             low = path.read_text(encoding="utf-8", errors="ignore").lower()
         except (OSError, UnicodeDecodeError):
             continue
-        hits.extend((rel, n) for n in names if re.search(rf"\b{re.escape(n)}\b", low))
+        hits.extend((rel, n) for n in names if re.search(rf"(?<!\w){re.escape(n)}(?!\w)", low))
 
     if hits:
         print(f"FAIL: {len(hits)} real company name(s) in git-tracked files")

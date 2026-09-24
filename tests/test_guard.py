@@ -194,7 +194,7 @@ def test_parenthetical_qualifier_words_are_not_indexed(tmp_path):
         "Company,Role,Status,Priority,Referral Needed,Referral Status,"
         "Apply Via,Applied Date,Discovered Date\n"
         "Undisclosed (LinkedIn partner),Eng,To Apply,LOW,NO,Not Needed,LinkedIn,,\n"
-        "Coda Search (Staffing),Eng,Applied,LOW,NO,Not Needed,Email,,\n",
+        "Quillmoor Search (Staffing),Eng,Applied,LOW,NO,Not Needed,Email,,\n",
         encoding="utf-8",
     )
     denylist = build_denylist(csv_path)
@@ -202,7 +202,18 @@ def test_parenthetical_qualifier_words_are_not_indexed(tmp_path):
     assert "linkedin" not in denylist
     assert "staffing" not in denylist
     # Identity is still protected.
-    assert "coda" in denylist
+    assert "quillmoor" in denylist
     check_no_denylisted_terms("Applied via LinkedIn Easy Apply.", denylist)
     with pytest.raises(GuardViolation):
-        check_no_denylisted_terms("Coda Search rejected the application.", denylist)
+        check_no_denylisted_terms("Quillmoor Search rejected the application.", denylist)
+
+
+def test_full_name_ending_in_punctuation_is_matched():
+    # \b after a trailing "." never matches before a space, so a name like
+    # "Acme Half Inc." slipped past whenever its distinctive word was generic.
+    with pytest.raises(GuardViolation):
+        check_no_denylisted_terms("Metrics for Acme Half Inc. here.", {"acme half inc."})
+
+
+def test_punctuated_name_still_respects_word_boundaries():
+    check_no_denylisted_terms("Metrics for BigAcme Half Inc.x here.", {"acme half inc."})

@@ -49,7 +49,7 @@ _GENERIC_NAME_TOKENS = frozenset({
     "analytics", "aria", "code", "list", "main", "privacy", "search", "revenue",
     "blend", "infinite", "motion", "staffing", "distinct", "family", "from",
     "workday", "brand", "center", "outcome", "right", "short", "space", "unit",
-    "customer", "edge",
+    "customer", "edge", "answer", "half", "model", "pivot",
 })
 
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
@@ -104,8 +104,8 @@ def build_denylist(tracker_path: str | Path) -> set[str]:
             continue
         terms.add(name.lower())
         # A parenthetical is a descriptor, not identity: "Undisclosed (LinkedIn
-        # partner)" is already anonymized, and "Coda Search (Staffing)" is
-        # identified by "Coda Search". Indexing their qualifier words would
+        # partner)" is already anonymized, and "Quillmoor Search (Staffing)" is
+        # identified by "Quillmoor Search". Indexing their qualifier words would
         # protect nothing while banning ordinary vocabulary. The full name stays
         # on the list; only the parenthetical is skipped when splitting words.
         name = re.sub(r"\([^)]*\)", " ", name)
@@ -144,7 +144,7 @@ def check_no_denylisted_terms(
     for sentence in _SENTENCE_SPLIT_RE.split(text):
         haystack = sentence.lower()
         for term in sorted(denylist, key=len, reverse=True):
-            if not re.search(rf"\b{re.escape(term)}\b", haystack):
+            if not re.search(rf"(?<!\w){re.escape(term)}(?!\w)", haystack):
                 continue
             if term in VENDOR_TOOL_NAMES and not _APPLICATION_CONTEXT_RE.search(sentence):
                 continue

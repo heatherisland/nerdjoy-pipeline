@@ -52,8 +52,57 @@
     </ol>
   </section>
 
+  <section aria-labelledby="overkill-heading">
+    <p class="kicker"><span class="br">{</span> 03 // real talk <span class="br">}</span></p>
+    <h2 id="overkill-heading">Do you need all this?</h2>
+    <p class="lead">Probably not. This page runs on eight tools. Every chart on it can also be
+      built from the spreadsheet with one script, and the numbers come out identical.</p>
+
+    <ol class="ladder">
+      <li class="rung">
+        <p class="rung-num">1</p>
+        <h3>The spreadsheet</h3>
+        <p class="rung-tools">1 tool</p>
+        <p>The tracker is a spreadsheet, and it is still the source of truth. Filters and a pivot
+          table answer most questions about a job search.</p>
+        <p class="rung-when"><span>Enough when</span> one person, one source, and questions you ask by hand.</p>
+      </li>
+      <li class="rung rung--pick">
+        <p class="chip chip--mg">Enough for this job</p>
+        <p class="rung-num">2</p>
+        <h3>Spreadsheet + one script</h3>
+        <p class="rung-tools">1 tool, under 400 lines of Python</p>
+        <p>The script reads the same file and writes every number on this page: totals, funnel,
+          channels and activity, all identical to the warehouse output.</p>
+        <p class="rung-when"><span>Move up when</span> you want a dashboard, a daily refresh, or a privacy check before anything goes public.</p>
+      </li>
+      <li class="rung rung--built">
+        <p class="chip chip--cy">What this page runs on</p>
+        <p class="rung-num">3</p>
+        <h3>The full stack</h3>
+        <p class="rung-tools">8 tools, 9 dbt models, 1 DAG</p>
+        <p>Postgres, Fivetran, BigQuery, dbt, Hightouch, HubSpot, Google Sheets and Airflow on
+          Astro, each wired and running.</p>
+        <p class="rung-when"><span>Move up when</span> data comes from systems that change on their own, several teams need the same numbers, and results must flow back into the tools people work in.</p>
+      </li>
+    </ol>
+
+    <h3 class="upkeep-title">What rung 3 cost to build and keep running</h3>
+    <ul class="upkeep">
+      <li>The Airflow 2 runtime was retired, so the DAG was ported to Airflow 3.</li>
+      <li>dbt crashed on Python 3.14, so the Airflow image is pinned to 3.12.</li>
+      <li>More than half the raw rows in the warehouse are deleted copies kept by replication. Every model has to filter them out.</li>
+      <li>A cleanup in the spreadsheet left stale rows in the database, because the loader only adds and updates.</li>
+      <li>Real-time sync was off the table: the database and the sync tool could not agree on a network path, so it runs on a schedule.</li>
+    </ul>
+    <p class="upkeep-note">None of these problems exist at rung 1 or 2.</p>
+
+    <p class="verdict">For a job search, rung 2 is plenty. I built rung 3 because building it is the job.
+      <span class="mg">The expensive mistake is buying rung 3 before you have rung 3 problems.</span></p>
+  </section>
+
   <section aria-labelledby="activity-heading">
-    <p class="kicker"><span class="br">{</span> 03 // activity <span class="br">}</span></p>
+    <p class="kicker"><span class="br">{</span> 04 // activity <span class="br">}</span></p>
     <h2 id="activity-heading">Activity over time</h2>
     <div class="chart-frame chart-frame--mg">
       <canvas id="activity-chart" role="img" aria-label="Applications submitted by month"></canvas>
@@ -61,7 +110,7 @@
   </section>
 
   <section aria-labelledby="channels-heading">
-    <p class="kicker"><span class="br">{</span> 04 // channels <span class="br">}</span></p>
+    <p class="kicker"><span class="br">{</span> 05 // channels <span class="br">}</span></p>
     <h2 id="channels-heading">Where applications go</h2>
     <div class="chart-frame chart-frame--tall">
       <canvas id="channels-chart" role="img" aria-label="Top application channels"></canvas>
