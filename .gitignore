@@ -69,3 +69,6 @@ docs/superpowers/
 
 # Env-driven profile baked into the Airflow image; holds no secrets.
 !dbt/airflow/profiles.yml
+
+# Drafts of outgoing posts, local only (see docs/PROJECT_STATUS.md)
+content/
