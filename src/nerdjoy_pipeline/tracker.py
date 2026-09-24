@@ -55,6 +55,9 @@ class Application:
     apply_via: str
     applied_date: date | None
     discovered_date: date | None
+    # Ever reached an interview stage. Status holds only the latest stage, so a
+    # rejected-after-onsite role needs this to still count as interviewed.
+    screened: bool = False
 
 
 # The tracker is maintained in a spreadsheet that writes M/D/YY, but dates
@@ -182,6 +185,7 @@ def read_tracker(
             apply_via=normalize_apply_via(r.get("Apply Via", "")),
             applied_date=parse_date(r.get("Applied Date", "")),
             discovered_date=parse_date(r.get("Discovered Date", "")),
+            screened=(r.get("Screened") or "").strip().upper() == "YES",
         )
         for r in rows
     ]

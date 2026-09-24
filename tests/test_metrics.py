@@ -142,3 +142,24 @@ def test_agency_channels_are_generalized():
 def test_non_agency_channels_are_untouched():
     apps = [_chan("Greenhouse"), _chan("Company Site")]
     assert channel_counts(apps) == {"Company Site": 1, "Greenhouse": 1}
+
+
+def test_interviewed_counts_screened_or_current_interview_stage_once():
+    from nerdjoy_pipeline.metrics import interviewed_count
+
+    def app(status, screened):
+        return Application(
+            company="Example Corp", role=status, status=status, priority="LOW",
+            referral_needed=False, referral_status="Not Needed", apply_via="Unknown",
+            applied_date=None, discovered_date=None, screened=screened,
+        )
+
+    apps = [
+        app("Rejected", True),        # screened, now terminal: counts
+        app("Phone Screen", False),   # current stage, not yet tagged: counts
+        app("Onsite", True),          # both: counts once
+        app("Applied", False),        # neither
+        app("Withdrew", False),       # neither
+    ]
+    assert interviewed_count(apps) == 3
+    assert summary(apps)["totals"]["interviewed"] == 3

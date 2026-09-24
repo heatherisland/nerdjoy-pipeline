@@ -86,6 +86,9 @@ def payload_from_bigquery_rows(
         ],
     }
 
+    if "interviewed_total" in values:
+        payload["totals"]["interviewed"] = int(values["interviewed_total"])
+
     # Omitted entirely rather than zero-filled: the tracker source has no CRM
     # data, and a block of zeroes would read as "HubSpot knows nothing" rather
     # than "this export did not consult HubSpot".

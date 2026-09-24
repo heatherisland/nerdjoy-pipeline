@@ -150,6 +150,23 @@
     });
   }
 
+  // The funnel bars show where each application is now, so a rejection after
+  // an onsite counts as Rejected. Say how many ever reached an interview.
+  function renderFunnelNote(data) {
+    var node = document.getElementById("funnel-note");
+    var n = data.totals && data.totals.interviewed;
+    if (!node || typeof n !== "number") return;
+    var f = data.funnel || {};
+    var active = ["Recruiter Call", "Phone Screen", "Onsite", "Offer"].reduce(function (sum, k) {
+      return sum + (f[k] || 0);
+    }, 0);
+    var closed = n - active;
+    node.textContent = "Bars show each application's current step. " + n +
+      " reached an interview at some point" +
+      (closed > 0 ? ", and " + closed + " of those have since closed." : ".");
+    node.hidden = false;
+  }
+
   function renderTiles(data) {
     var host = document.getElementById("tiles");
     host.textContent = "";
@@ -157,9 +174,10 @@
     var tiles = [
       { value: data.totals.applications, label: "applications tracked" },
       { value: data.totals.companies, label: "companies in the pipeline" },
+      { value: data.totals.interviewed, label: "reached an interview" },
       { value: refs.needed || 0, label: "needed a warm intro" },
       { value: refs.conversion_pct || 0, label: "referral conversion", suffix: "%" }
-    ];
+    ].filter(function (t) { return typeof t.value === "number"; });
     tiles.forEach(function (t, index) {
       var suffix = t.suffix || "";
       var tile = el("div", "tile");
@@ -346,6 +364,7 @@
   function render(data) {
     renderTiles(data);
     renderAnswers(data);
+    renderFunnelNote(data);
     renderGenerated(data.generated_at);
     // Canvas text uses whatever font is loaded at draw time, so wait for Sora.
     var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();

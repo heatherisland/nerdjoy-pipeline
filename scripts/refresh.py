@@ -29,6 +29,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from nerdjoy_pipeline.pg_loader import (  # noqa: E402
+    ADD_SCREENED_SQL,
     CREATE_TABLE_SQL,
     UPSERT_SQL,
     application_key,
@@ -114,6 +115,7 @@ def load_postgres() -> int:
     with psycopg.connect(dsn) as conn:
         cur = conn.cursor()
         cur.execute(CREATE_TABLE_SQL)
+        cur.execute(ADD_SCREENED_SQL)
         existing = {r[0] for r in cur.execute("select application_key from applications")}
         stale = sorted(existing - keep)
         if len(stale) > MAX_STALE_DELETES:

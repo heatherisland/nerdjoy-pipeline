@@ -122,3 +122,16 @@ def test_non_agency_channels_pass_through_unchanged():
     )
     row = to_row(app, agencies=frozenset({"someagency staffing"}))
     assert row[APPLY_VIA_IDX] == "Greenhouse"
+
+
+def test_screened_is_loaded_and_the_column_is_added_idempotently(sample_tracker_path: Path):
+    from nerdjoy_pipeline.pg_loader import ADD_SCREENED_SQL
+
+    assert "ADD COLUMN IF NOT EXISTS screened" in ADD_SCREENED_SQL
+    assert "screened" in CREATE_TABLE_SQL and "screened" in UPSERT_SQL
+    app = read_tracker(sample_tracker_path)[0]
+    assert to_row(app)[-1] is False
+    conn = FakeConn()
+    load_applications([app], conn)
+    statements = [sql for sql, _ in conn.cursor_obj.executed]
+    assert statements[:2] == [CREATE_TABLE_SQL, ADD_SCREENED_SQL]

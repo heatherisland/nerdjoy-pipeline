@@ -26,15 +26,22 @@ CREATE TABLE IF NOT EXISTS applications (
     apply_via       TEXT NOT NULL,
     applied_date    DATE,
     discovered_date DATE,
+    screened        BOOLEAN NOT NULL DEFAULT false,
     loaded_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 )
 """
 
+# CREATE TABLE IF NOT EXISTS never adds columns to an existing table.
+ADD_SCREENED_SQL = (
+    "ALTER TABLE applications ADD COLUMN IF NOT EXISTS screened BOOLEAN NOT NULL DEFAULT false"
+)
+
 UPSERT_SQL = """
 INSERT INTO applications (
     application_key, company, role, status, priority,
-    referral_needed, referral_status, apply_via, applied_date, discovered_date
-) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    referral_needed, referral_status, apply_via, applied_date, discovered_date,
+    screened
+) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 ON CONFLICT (application_key) DO UPDATE SET
     status          = EXCLUDED.status,
     priority        = EXCLUDED.priority,
@@ -43,6 +50,7 @@ ON CONFLICT (application_key) DO UPDATE SET
     apply_via       = EXCLUDED.apply_via,
     applied_date    = EXCLUDED.applied_date,
     discovered_date = EXCLUDED.discovered_date,
+    screened        = EXCLUDED.screened,
     loaded_at       = now()
 """
 
@@ -73,6 +81,7 @@ def to_row(app: Application, agencies: frozenset[str] | None = None) -> tuple:
         generalize_channel(app.apply_via, agencies),
         app.applied_date,
         app.discovered_date,
+        app.screened,
     )
 
 
@@ -80,6 +89,7 @@ def load_applications(apps: list[Application], conn) -> int:
     """Create the table if needed and upsert every application. Idempotent."""
     cur = conn.cursor()
     cur.execute(CREATE_TABLE_SQL)
+    cur.execute(ADD_SCREENED_SQL)
     cur.executemany(UPSERT_SQL, [to_row(a) for a in apps])
     conn.commit()
     return len(apps)

@@ -223,3 +223,10 @@ def test_activity_block_is_empty_when_no_activity_rows_are_supplied():
         [{"metric_name": "applications_total", "metric_value": 1}]
     )
     assert payload["activity"] == []
+
+
+def test_payload_from_bigquery_rows_reads_interviewed_total():
+    from nerdjoy_pipeline.metrics_extract import payload_from_bigquery_rows
+
+    payload = payload_from_bigquery_rows([{"metric_name": "interviewed_total", "metric_value": 14}])
+    assert payload["totals"]["interviewed"] == 14

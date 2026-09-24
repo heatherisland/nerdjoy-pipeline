@@ -54,6 +54,11 @@ select
     apply_via,
     applied_date,
     discovered_date,
+    coalesce(screened, false) as screened,
+    -- Status keeps only the latest stage; screened remembers an interview that
+    -- later ended in a rejection or withdrawal.
+    coalesce(screened, false)
+        or status in ('Recruiter Call', 'Phone Screen', 'Onsite', 'Offer') as ever_interviewed,
     case
         when status in ('Recruiter Call', 'Phone Screen', 'Onsite', 'Offer') then true
         else false

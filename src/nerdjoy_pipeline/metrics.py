@@ -110,12 +110,21 @@ def activity_timeseries(apps: list[Application]) -> list[dict[str, str | int]]:
     return [{"month": m, "applied": counts[m]} for m in sorted(counts)]
 
 
+INTERVIEW_STAGES = frozenset({"Recruiter Call", "Phone Screen", "Onsite", "Offer"})
+
+
+def interviewed_count(apps: list[Application]) -> int:
+    """Applications that ever reached an interview, counted once each."""
+    return sum(1 for a in apps if a.screened or a.status in INTERVIEW_STAGES)
+
+
 def summary(apps: list[Application]) -> dict:
     """The full anonymized payload that becomes metrics.json."""
     return {
         "totals": {
             "applications": len(apps),
             "companies": len({a.company for a in apps if a.company}),
+            "interviewed": interviewed_count(apps),
         },
         "funnel": funnel_counts(apps),
         "referrals": referral_metrics(apps),

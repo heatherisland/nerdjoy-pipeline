@@ -29,6 +29,9 @@ select 'applications_total' as metric_name,
 from applications
 
 union all
+select 'interviewed_total', cast(countif(ever_interviewed) as numeric) from applications
+
+union all
 select 'companies_total', cast(count(distinct company) as numeric) from applications
 
 union all

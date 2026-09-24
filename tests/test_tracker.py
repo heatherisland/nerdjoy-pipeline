@@ -200,3 +200,21 @@ def test_pipeline_window_uses_applied_then_discovered_date():
         (None, date(2026, 7, 2)),
     ]
     assert PIPELINE_START == date(2026, 7, 1)
+
+
+def test_screened_column_parses_yes_and_defaults_false(tmp_path):
+    csv_path = tmp_path / "t.csv"
+    csv_path.write_text(
+        "Company,Role,Status,Priority,Referral Needed,Referral Status,Apply Via,"
+        "Applied Date,Discovered Date,Screened\n"
+        "Hollowpine,Engineer,Rejected,HIGH,NO,Not Needed,Greenhouse,,,YES\n"
+        "Quillmoor,Analyst,Applied,HIGH,NO,Not Needed,Greenhouse,,,NO\n"
+        "Northwind,Analyst,Applied,HIGH,NO,Not Needed,Greenhouse,,,\n",
+        encoding="utf-8",
+    )
+    apps = read_tracker(csv_path, excluded=frozenset())
+    assert [a.screened for a in apps] == [True, False, False]
+
+
+def test_tracker_without_screened_column_reads_as_not_screened(sample_tracker_path: Path):
+    assert not any(a.screened for a in read_tracker(sample_tracker_path))

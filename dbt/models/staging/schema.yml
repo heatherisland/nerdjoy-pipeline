@@ -30,6 +30,12 @@ models:
               values:
                 ["Not Needed", "Outreach Pending", "Connection Pending",
                  "Outreach Sent", "Got Referral", "Declined", "No Referral"]
+      - name: screened
+        description: Ever reached an interview stage, per the tracker's Screened column.
+        tests: [not_null]
+      - name: ever_interviewed
+        description: Screened, or currently at Recruiter Call or later.
+        tests: [not_null]
 
   - name: stg_companies
     description: One row per company with rolled-up application counts.
