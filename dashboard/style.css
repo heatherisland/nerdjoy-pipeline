@@ -231,7 +231,7 @@ h2 {
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   align-items: stretch;
 }
@@ -346,6 +346,7 @@ h2 {
 }
 .chip--mg { background: var(--magenta); }
 .chip--cy { background: var(--cyan); }
+.chip--quiet { background: var(--line); color: var(--fg); }
 
 /* upkeep as a terminal: rung 3's log is full, rung 2's is empty */
 .terminal {

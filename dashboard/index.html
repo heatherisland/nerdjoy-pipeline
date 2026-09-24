@@ -55,7 +55,7 @@
   <section aria-labelledby="overkill-heading">
     <p class="kicker"><span class="br">{</span> 03 // real talk <span class="br">}</span></p>
     <h2 id="overkill-heading">Do you need all this?</h2>
-    <p class="lead">Probably not. Here is the same answer, three ways. Watch the machinery grow while
+    <p class="lead">Probably not. Here is the same answer, four ways. Watch the machinery grow while
       the answer stays exactly the same.</p>
 
     <ol class="ladder">
@@ -68,19 +68,29 @@
         <p class="rung-when"><span>Enough when</span> one person, one source, questions you ask by hand.</p>
         <p class="answer"><span class="answer-label">Answer</span><span class="answer-num js-total">...</span> applications</p>
       </li>
-      <li class="rung rung--pick">
-        <p class="chip chip--mg">Enough for this job</p>
+      <li class="rung">
+        <p class="chip chip--quiet">Enough for reporting</p>
         <p class="rung-num">2</p>
         <h3>Spreadsheet + one script</h3>
         <div class="flow"><span class="tool">tracker.csv</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">metrics.py</span></div>
-        <div class="meter meter--mg" aria-hidden="true"><span class="cell on"></span><span class="cell on"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+        <div class="meter" aria-hidden="true"><span class="cell on"></span><span class="cell on"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
         <p class="meter-label">2 moving parts</p>
         <p class="rung-when"><span>Move up when</span> you want a dashboard, a daily refresh, or a privacy check before anything goes public.</p>
         <p class="answer"><span class="answer-label">Answer</span><span class="answer-num js-total">...</span> applications</p>
       </li>
+      <li class="rung rung--pick">
+        <p class="chip chip--mg">What runs my search</p>
+        <p class="rung-num">3</p>
+        <h3>Spreadsheet + an AI agent</h3>
+        <div class="flow"><span class="tool">tracker.csv</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">claude code</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">chrome</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">git</span></div>
+        <div class="meter meter--mg" aria-hidden="true"><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+        <p class="meter-label">4 moving parts</p>
+        <p class="rung-when"><span>Why it wins</span> an open-source Claude Code assistant finds roles, adds them to the tracker, drafts outreach for my approval, and commits each day's work.</p>
+        <p class="answer"><span class="answer-label">Answer</span><span class="answer-num js-total">...</span> applications</p>
+      </li>
       <li class="rung rung--built">
         <p class="chip chip--cy">What this page runs on</p>
-        <p class="rung-num">3</p>
+        <p class="rung-num">4</p>
         <h3>The full stack</h3>
         <div class="flow flow--busy"><span class="tool">tracker.csv</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">postgres</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">fivetran</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">bigquery</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">dbt</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">airflow</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">hightouch</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">hubspot</span><span class="flow-arrow" aria-hidden="true">&rarr;</span><span class="tool">sheets</span></div>
         <div class="meter meter--cy" aria-hidden="true"><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span><span class="cell on"></span></div>
@@ -92,19 +102,26 @@
 
     <div class="terminal" role="region" aria-label="What each rung cost to build and keep running">
       <div class="term-bar" aria-hidden="true"><span></span><span></span><span></span><em>upkeep.log</em></div>
-      <pre class="term-body"><span class="prompt">$</span> tail rung-3/upkeep.log
+      <pre class="term-body"><span class="prompt">$</span> tail rung-4/upkeep.log
 <span class="tag">[runtime]  </span> Airflow 2 was retired. The DAG was ported to Airflow 3.
 <span class="tag">[python]   </span> dbt crashed on Python 3.14. The image is pinned to 3.12.
 <span class="tag">[warehouse]</span> Over half the raw rows are deleted copies. Every model filters them.
 <span class="tag">[loader]   </span> A spreadsheet cleanup left stale rows. The loader only upserts.
 <span class="tag">[network]  </span> No real-time sync. The tools share no network path, so it runs on a schedule.
 
+<span class="prompt">$</span> tail rung-3/upkeep.log
+<span class="tag">[dupes]    </span> Duplicate rows piled up until a dedupe pass.
+<span class="tag">[status]   </span> A role sat under two statuses at once.
+<span class="tag">[dates]    </span> Dates drifted between M/D/YY and ISO.
+<span class="tag">[columns]  </span> An email address landed in the channel column.
+
 <span class="prompt">$</span> tail rung-2/upkeep.log
 <span class="empty">(empty)</span></pre>
     </div>
 
-    <p class="verdict">For a job search, rung 2 is plenty. I built rung 3 because building it is the job.
-      <span class="mg">The expensive mistake is buying rung 3 before you have rung 3 problems.</span></p>
+    <p class="verdict">The leverage is in rung 3: an agent doing the repetitive work while I make the calls.
+      Rung 4 is for when several teams need the same numbers.
+      <span class="mg">The expensive mistake is buying rung 4 before you have rung 4 problems.</span></p>
   </section>
 
   <section aria-labelledby="activity-heading">
