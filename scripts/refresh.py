@@ -16,6 +16,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -53,7 +54,12 @@ class Abort(Exception):
     pass
 
 
+_URL_CREDENTIALS = re.compile(r"(\w+://[^:/\s'\"]+:)[^@\s'\"]+@")
+
+
 def log(msg: str) -> None:
+    # Driver errors can echo the whole connection string, password included.
+    msg = _URL_CREDENTIALS.sub(r"\1[REDACTED]@", msg)
     line = f"{datetime.now().isoformat(timespec='seconds')} {msg}"
     print(line, flush=True)
     with LOG.open("a", encoding="utf-8") as fh:
