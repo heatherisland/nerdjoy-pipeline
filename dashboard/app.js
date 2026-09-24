@@ -141,6 +141,15 @@
     requestAnimationFrame(tick);
   }
 
+  // The ladder shows one answer three ways; fill it from the same payload so
+  // the claim "identical" is literally true on the page.
+  function renderAnswers(data) {
+    var nodes = document.querySelectorAll(".js-total");
+    Array.prototype.forEach.call(nodes, function (node) {
+      node.textContent = String(data.totals.applications);
+    });
+  }
+
   function renderTiles(data) {
     var host = document.getElementById("tiles");
     host.textContent = "";
@@ -336,6 +345,7 @@
 
   function render(data) {
     renderTiles(data);
+    renderAnswers(data);
     renderGenerated(data.generated_at);
     // Canvas text uses whatever font is loaded at draw time, so wait for Sora.
     var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();

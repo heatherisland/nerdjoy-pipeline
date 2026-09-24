@@ -244,11 +244,12 @@ h2 {
   border: 1px solid var(--line);
   border-top: 2px solid var(--line);
   border-radius: var(--radius-card);
-  padding: 20px 18px 18px;
+  padding: 20px 18px 0;
+  overflow: hidden;
 }
 
 .rung p { margin: 0 0 12px; font-size: 15px; }
-.rung h3 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+.rung h3 { font-size: 18px; font-weight: 600; margin: 0 0 14px; }
 
 .rung .rung-num {
   font-family: var(--font-display);
@@ -257,15 +258,38 @@ h2 {
   color: var(--muted);
 }
 
-.rung-tools {
+/* tool chain: one chip per moving part, so rung 3 looks as busy as it is */
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; margin-bottom: 14px; }
+.tool {
   font-family: var(--font-mono);
-  font-size: 12px !important;
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--fg);
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+}
+.flow-arrow { color: var(--muted); font-size: 12px; }
+.rung--pick .tool { border-color: rgba(236, 7, 130, 0.55); }
+.rung--built .tool { border-color: rgba(31, 217, 229, 0.45); }
+
+.meter { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; }
+.meter .cell { height: 8px; border-radius: 2px; background: var(--line); }
+.meter .cell.on { background: var(--muted); }
+.meter--mg .cell.on { background: var(--magenta); }
+.meter--cy .cell.on { background: var(--cyan); }
+.rung .meter-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--cyan);
+  color: var(--muted);
+  margin: 6px 0 14px;
 }
 
-.rung-when { margin-top: auto !important; margin-bottom: 0 !important; color: var(--muted); font-size: 14px !important; }
+.rung-when { color: var(--muted); font-size: 14px !important; margin-bottom: 16px !important; }
 .rung-when span {
   display: block;
   font-family: var(--font-mono);
@@ -274,6 +298,31 @@ h2 {
   text-transform: uppercase;
   color: var(--fg);
   margin-bottom: 2px;
+}
+
+/* identical answer pinned to the bottom of every card */
+.rung .answer {
+  margin: auto -18px 0;
+  padding: 12px 18px 14px;
+  border-top: 1px dashed var(--line);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 14px;
+}
+.answer-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+.answer-num {
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1;
+  color: var(--fg);
+  margin-right: 6px;
 }
 
 .rung--pick { border-color: var(--magenta); border-top-color: var(--magenta); box-shadow: 0 0 24px rgba(236, 7, 130, 0.25); }
@@ -298,33 +347,45 @@ h2 {
 .chip--mg { background: var(--magenta); }
 .chip--cy { background: var(--cyan); }
 
-.upkeep-title {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--cyan);
-  margin: 40px 0 12px;
+/* upkeep as a terminal: rung 3's log is full, rung 2's is empty */
+.terminal {
+  margin-top: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--bg);
+  overflow: hidden;
 }
-
-.upkeep { list-style: none; padding: 0; margin: 0; }
-.upkeep li {
-  position: relative;
-  padding: 8px 0 8px 28px;
-  font-size: 15px;
+.term-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
-.upkeep li::before {
-  content: "\00d7";
-  position: absolute;
-  left: 4px;
-  top: 6px;
+.term-bar span { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.term-bar span:nth-child(1) { background: var(--magenta); }
+.term-bar span:nth-child(2) { background: var(--cyan); }
+.term-bar em {
+  margin-left: 8px;
+  font-style: normal;
   font-family: var(--font-mono);
-  font-weight: 600;
-  color: var(--magenta);
+  font-size: 12px;
+  color: var(--muted);
 }
-.upkeep-note { color: var(--muted); font-size: 14px; margin: 12px 0 0; }
+.term-body {
+  margin: 0;
+  padding: 16px 18px 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--fg);
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.term-body .prompt { color: var(--magenta); font-weight: 600; }
+.term-body .tag { color: var(--cyan); }
+.term-body .empty { color: var(--muted); }
 
 .verdict {
   font-weight: 600;
@@ -339,6 +400,7 @@ h2 {
 
 @media (max-width: 760px) {
   .ladder { grid-template-columns: 1fr; }
+  .term-body { font-size: 12px; }
 }
 
 /* ---- stack list ---- */
