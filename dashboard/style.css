@@ -216,6 +216,16 @@ h2 {
   padding: 16px 12px;
 }
 
+.chart-label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin: 20px 0 8px;
+}
+.chart-label--mg { color: var(--magenta); }
 .chart-frame { border-top: 2px solid var(--cyan); }
 .chart-frame--mg { border-top-color: var(--magenta); }
 .chart-frame + .chart-frame { margin-top: 12px; }

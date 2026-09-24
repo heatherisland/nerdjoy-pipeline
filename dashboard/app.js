@@ -154,16 +154,12 @@
   // an onsite counts as Rejected. Say how many ever reached an interview.
   function renderFunnelNote(data) {
     var node = document.getElementById("funnel-note");
-    var n = data.totals && data.totals.interviewed;
-    if (!node || typeof n !== "number") return;
-    var f = data.funnel || {};
-    var active = ["Recruiter Call", "Phone Screen", "Onsite", "Offer"].reduce(function (sum, k) {
-      return sum + (f[k] || 0);
-    }, 0);
-    var closed = n - active;
-    node.textContent = "Bars show each application's current step. " + n +
-      " reached an interview at some point" +
-      (closed > 0 ? ", and " + closed + " of those have since closed." : ".");
+    if (!node) return;
+    var i = interviewedTotal(data);
+    var closed = i.total - i.active;
+    node.textContent = i.total + " reached an interview" +
+      (closed > 0 ? ", and " + closed + " of those have since closed" : "") +
+      ". \"Applied or engaged\" counts everything past To Apply, including roles where someone reached out first.";
     node.hidden = false;
   }
 
@@ -233,24 +229,43 @@
     });
   }
 
-  function renderFunnelChart(data, theme) {
-    var canvas = document.getElementById("funnel-chart");
-    var funnel = data.funnel || {};
-    var labels = FUNNEL_STEPS.filter(function (s) { return Object.prototype.hasOwnProperty.call(funnel, s); });
-    var values = labels.map(function (s) { return funnel[s] || 0; });
-    renderDataTable("funnel-chart", "Applications at each step of the funnel", ["Step", "Applications"],
-      labels.map(function (l, i) { return [l, values[i]]; }));
-    if (!canvas || !window.Chart) return null;
-    return horizontalBar(canvas, theme, labels, values, theme.cyan, "application");
+  function interviewedTotal(data) {
+    var f = data.funnel || {};
+    var active = ["Recruiter Call", "Phone Screen", "Onsite", "Offer"].reduce(function (sum, k) {
+      return sum + (f[k] || 0);
+    }, 0);
+    var n = data.totals && data.totals.interviewed;
+    return { total: typeof n === "number" ? n : active, active: active };
   }
 
-  function renderFunnelOutcomesChart(data, theme) {
-    var canvas = document.getElementById("funnel-outcomes-chart");
-    var funnel = data.funnel || {};
-    var labels = OUTCOME_KEYS.filter(function (s) { return Object.prototype.hasOwnProperty.call(funnel, s); });
-    if (!labels.length) return null;
-    var values = labels.map(function (s) { return funnel[s] || 0; });
-    renderDataTable("funnel-outcomes-chart", "Applications that ended without an offer", ["Outcome", "Applications"],
+  // A true funnel: how many ever reached each step. Status alone cannot give
+  // this, because a rejection after an interview is recorded as Rejected.
+  function renderFunnelChart(data, theme) {
+    var canvas = document.getElementById("funnel-chart");
+    var f = data.funnel || {};
+    var total = data.totals.applications;
+    var steps = [
+      ["Tracked", total],
+      ["Applied or engaged", total - (f["To Apply"] || 0)],
+      ["Reached an interview", interviewedTotal(data).total],
+      ["Offer", f.Offer || 0]
+    ];
+    renderDataTable("funnel-chart", "How many applications reached each step", ["Step", "Applications"], steps);
+    if (!canvas || !window.Chart) return null;
+    return horizontalBar(canvas, theme,
+      steps.map(function (s) { return s[0]; }),
+      steps.map(function (s) { return s[1]; }),
+      theme.cyan, "application");
+  }
+
+  function renderStandingChart(data, theme) {
+    var canvas = document.getElementById("standing-chart");
+    var f = data.funnel || {};
+    var labels = FUNNEL_STEPS.concat(OUTCOME_KEYS).filter(function (s) {
+      return Object.prototype.hasOwnProperty.call(f, s);
+    });
+    var values = labels.map(function (s) { return f[s] || 0; });
+    renderDataTable("standing-chart", "Current status of every application", ["Status", "Applications"],
       labels.map(function (l, i) { return [l, values[i]]; }));
     if (!canvas || !window.Chart) return null;
     return horizontalBar(canvas, theme, labels, values, theme.magenta, "application");
@@ -324,7 +339,7 @@
       Chart.defaults.color = theme.muted;
     }
     renderFunnelChart(data, theme);
-    renderFunnelOutcomesChart(data, theme);
+    renderStandingChart(data, theme);
     renderActivityChart(data, theme);
     renderChannelsChart(data, theme);
   }
